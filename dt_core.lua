@@ -92,7 +92,8 @@ function M.preflight(io)
     check(empty(o.items) and o.amount==0,'Output bus/hatch must be empty before a new transaction')
   end
 end
--- Caller must persist job before each invocation. Transfers are reconciled by reading the machine.
+-- Caller must persist each phase before its first invocation. Repeated transfers
+-- within a phase are reconciled by reading the machine, including after a restart.
 function M.step(io, job, recipe, bindings)
   local t=M.targets(recipe,bindings)
   if io.setTargets then io:setTargets(t) end
@@ -103,58 +104,58 @@ function M.step(io, job, recipe, bindings)
     validateFluidDest(input,t)
     for index,name in ipairs(t.fluidOrder) do
       local need=t.fluids[name]-(input.tanks[index].amount or 0)
-      if need>0 then io:fillFluid(name,need,index);return 'Loading '..name end
+      if need>0 then local moved=io:fillFluid(name,need,index);return 'Loading '..name,type(moved)=='number' and moved>0 end
     end
     check(exact(input.fluids,t.fluids),'Fluid totals differ from the recipe')
-    job.phase='items';return 'Fluids verified'
+    job.phase='items';return 'Fluids verified',true
   elseif job.phase=='items' then
     check(exact(input.fluids,t.fluids),'Fluids changed while loading items')
     for k,n in pairs(input.items) do check(t.items[k] and n<=t.items[k],'Unexpected/excess input item') end
     for _,k in ipairs(keys(t.items)) do
       local need=t.items[k]-(input.items[k] or 0)
-      if need>0 then io:fillItem(k,need);return 'Loading consumed item' end
+      if need>0 then local moved=io:fillItem(k,need);return 'Loading consumed item',type(moved)=='number' and moved>0 end
     end
-    job.phase='circuit';return 'Consumed items verified'
+    job.phase='circuit';return 'Consumed items verified',true
   elseif job.phase=='circuit' then
     check(exact(input.fluids,t.fluids),'Fluids changed before circuit insertion')
     local wanted=allItems(t)
     for k,n in pairs(input.items) do check(wanted[k] and n<=wanted[k],'Unexpected/excess bus contents') end
     for k,n in pairs(t.items) do check(input.items[k]==n,'Consumed ingredients changed') end
-    if t.circuit and not input.items[t.circuit] then io:insertCircuit(recipe.circuit,t.circuit);return 'Inserting reusable circuit last' end
+    if t.circuit and not input.items[t.circuit] then io:insertCircuit(recipe.circuit,t.circuit);return 'Inserting reusable circuit last',true end
     check(exact(input.items,wanted),'Bus does not match complete recipe')
-    job.phase='armed';return 'Ready to commit'
+    job.phase='armed';return 'Ready to commit',true
   elseif job.phase=='armed' then
     if empty(input.fluids) and exact(input.items,circuitMap(t)) then
       io:enable(false)
       if not M.managesOutputs(io) then
-        job.phase='return';return 'Batch accepted; outputs handled externally'
+        job.phase='return';return 'Batch accepted; outputs handled externally',true
       end
-      job.phase='result';return 'Batch consumed; waiting for output'
+      job.phase='result';return 'Batch consumed; waiting for output',true
     end
     check(exact(input.fluids,t.fluids) and exact(input.items,allItems(t)),
       'Inputs changed unexpectedly at commit; inspect machine before resuming')
-    io:enable(true);return 'Waiting for machine to start'
+    local changed=io:enable(true);return 'Waiting for machine to start',changed==true
   elseif job.phase=='result' then
     check(empty(input.fluids) and exact(input.items,circuitMap(t)),'Input contents changed during processing')
     local o=io:outputs()
     check(o.amount<=recipe.outputAmount,'Unexpected output fluid quantity')
-    if o.amount==recipe.outputAmount then job.phase='drain';return 'Fluid output confirms completion' end
+    if o.amount==recipe.outputAmount then job.phase='drain';return 'Fluid output confirms completion',true end
     return 'Processing / waiting for power, maintenance, or output'
   elseif job.phase=='drain' then
     check(empty(input.fluids) and exact(input.items,circuitMap(t)),'Inputs changed while draining outputs')
     local o=io:outputs()
-    if o.amount>0 or not empty(o.items) then io:drainOutput();return 'Draining outputs' end
-    job.phase='return';return 'Outputs cleared'
+    if o.amount>0 or not empty(o.items) then local moved=io:drainOutput();return 'Draining outputs',type(moved)=='number' and moved>0 end
+    job.phase='return';return 'Outputs cleared',true
   elseif job.phase=='return' then
     check(empty(input.fluids),'Input fluid remained after completion')
     if t.circuit and input.items[t.circuit] then
       check(exact(input.items,circuitMap(t)),'Unexpected items alongside circuit')
-      io:returnCircuit(recipe.circuit,t.circuit);return 'Returning reusable circuit'
+      io:returnCircuit(recipe.circuit,t.circuit);return 'Returning reusable circuit',true
     end
     check(empty(input.items),'Unexpected item remained in input bus')
     if t.circuit then check(io:circuitHome(recipe.circuit,t.circuit),'Reusable circuit is missing from its locker') end
     job.phase='complete'
-    return M.managesOutputs(io) and 'Batch complete' or 'Input handoff complete; production/export not observed'
+    return M.managesOutputs(io) and 'Batch complete' or 'Input handoff complete; production/export not observed',true
   elseif job.phase=='complete' then
     M.preflight(io);return 'Batch complete'
   end

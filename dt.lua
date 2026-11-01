@@ -73,6 +73,7 @@ if command=='help' then
   dt.lua bind-fluid SYMBOL TANK       sample staging-tank fluid registry name
   dt.lua bind-circuits                learn and verify the two circuit locker slots
   dt.lua check                        check capacities, bindings and circuits
+  dt.lua rates                        report fluid transposer rate and transfer-time limits
   dt.lua plan                         identify complete staged recipe (no transfers)
   dt.lua probe TANK                    move/return 1 L to verify selected-tank API
   dt.lua run                          run new jobs; refuse an unfinished journal
@@ -113,6 +114,16 @@ local function noJob() assert(not job,'An unfinished transaction exists; use res
 local function signature(r) return stable({recipe=r,bindings=bindings,config=cfg}) end
 local function body()
   if command=='scan' then ioMachine:scan();return end
+  if command=='rates' then
+    local rate=ioMachine:fluidRate()
+    if not rate then print('This transposer does not expose getFluidTransferRate');return end
+    print('Fluid-input transposer:',rate,'L/s')
+    print('Maximum fluid request:',ioMachine.fluidChunkLimit,'L; active wait:',ioMachine.activePollSeconds,'s')
+    for _,entry in ipairs({{'Samarium leach 1',2000},{'Fresh prismarine',8000},{'Monazite 9',99000}}) do
+      print(entry[1],string.format('%.3f s fluid-rate floor; excludes controller and machine processing',entry[2]/rate))
+    end
+    return
+  end
   if command=='bind-item' then
     noJob();assert(argv[2] and tonumber(argv[3]),'Usage: bind-item SYMBOL SLOT')
     assert(profiles.defaults.items[argv[2]],'Unknown item symbol; use materials')
@@ -169,27 +180,35 @@ local function body()
     'Recipe/bindings/config changed since this transaction; restore them before resume') end
   writeFile(lockPath,tostring(computer.uptime()))
   local lastMessage,jobStart=nil,computer.uptime()
+  local savedPhase=job and job.phase
   while true do
+    local progressed=false
     if not job then
       core.preflight(ioMachine)
       local match,reason=core.match(ioMachine:stage(),recipes,bindings,cfg)
       if match then
         job={recipe=match.recipe.id,phase='fluids',signature=signature(match.recipe)}
-        save(jobPath,job);jobStart=computer.uptime();lastMessage=nil
+        save(jobPath,job);savedPhase=job.phase;jobStart=computer.uptime();lastMessage=nil;progressed=true
       elseif reason~=lastMessage then print(reason);lastMessage=reason end
     else
       local r=assert(byId[job.recipe],'Unknown recipe in journal')
       assert(computer.uptime()-jobStart<cfg.jobTimeoutSeconds,'Transaction timed out. Journal retained; inspect power, transfers and machine status before resume.')
-      save(jobPath,job) -- durable intent BEFORE any transfer, including the reusable circuit.
-      local message=core.step(ioMachine,job,r,bindings)
+      -- One durable intent per phase. Repeated/partial transfers within that phase
+      -- recover from physical contents; they do not need another identical write.
+      if job.phase~=savedPhase then save(jobPath,job);savedPhase=job.phase end
+      local message
+      message,progressed=core.step(ioMachine,job,r,bindings)
       local status=r.id..' ['..job.phase..'] '..message
       if status~=lastMessage then print(status);lastMessage=status end
       if job.phase=='complete' then
-        core.preflight(ioMachine);erase(jobPath);job=nil
+        core.preflight(ioMachine);erase(jobPath);job=nil;savedPhase=nil
         print(core.managesOutputs(ioMachine) and 'Ready for next batch' or 'Input batch accepted; ready for next staged lot (outputs external)')
       end
     end
-    os.sleep(cfg.pollSeconds)
+    -- Advance successful work without a configured quarter-second delay per step.
+    -- Still yield to OpenOS, and back off when waiting or a transfer moved nothing.
+    local activePoll=ioMachine.activePollSeconds or (type(cfg.pollSeconds)=='number' and cfg.pollSeconds or 0.1)
+    os.sleep(progressed and 0 or (job and activePoll or (cfg.idlePollSeconds or activePoll)))
   end
 end
 local ok,err=xpcall(body,debug.traceback)

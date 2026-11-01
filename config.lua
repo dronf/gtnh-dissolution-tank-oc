@@ -3,12 +3,13 @@
 return {
   -- Default: your ME output hatch/bus exports products. No output components needed.
   outputMode='external',
-  inputFluids={address='REPLACE-FLUID-INPUT-UUID',stageSide='up',machineSide='north'},
-  inputItems={address='REPLACE-ITEM-INPUT-UUID',stageSide='up',machineSide='north',lockerSide='west'},
+  inputFluids={address='REPLACE-FLUID-INPUT-UUID',stageSide='up',machineSide='down'},
+  inputItems={address='REPLACE-ITEM-INPUT-UUID',stageSide='up',machineSide='down',lockerSide='west'},
   -- Optional old layout: set outputMode='managed' and configure two more transposers:
   -- outputFluids={address='REPLACE-FLUID-OUTPUT-UUID',machineSide='north',storeSide='up'},
   -- outputItems={address='REPLACE-ITEM-OUTPUT-UUID',machineSide='north',storeSide='up'},
-  redstone={address='REPLACE-REDSTONE-UUID',side='east'},
+  -- Card sides are relative to the computer: front/back/left/right/up/down.
+  redstone={address='REPLACE-REDSTONE-UUID',side='front'},
   -- Real LV Input Bus slots. The dedicated ghost-circuit slot must remain empty.
   consumedSlot=1,circuitSlot=2,
   circuitLockerSlots={[1]=1,[9]=2},
@@ -20,7 +21,8 @@ return {
   -- In the checked GTNH transfer implementation, sourceTank is a raw zero-based index.
   -- Reading getFluidInTank returns a Lua one-based array. Run `probe` before enabling `run`.
   sourceTankBase=0,
-  fluidChunk=1000,itemChunk=64,
-  pollSeconds=0.25,jobTimeoutSeconds=1800,
+  -- Auto reads getFluidTransferRate; hardware enforces its own transfer delay.
+  fluidChunk='auto',transferWindowSeconds=4,itemChunk=64,
+  pollSeconds='auto',idlePollSeconds=0.5,jobTimeoutSeconds=1800,
   commissioningPassed=false
 }

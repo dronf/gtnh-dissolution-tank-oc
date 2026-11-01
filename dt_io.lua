@@ -29,8 +29,17 @@ end
 local function slots(tp,s)
   local n,why=tp.getInventorySize(s);check(n,'Cannot inspect inventory: '..tostring(why))
   local a={}
+  local all
+  if tp.getAllStacks then
+    local snapshot,reason=tp.getAllStacks(s)
+    check(snapshot,'Cannot inspect inventory snapshot: '..tostring(reason))
+    all=snapshot.getAll()
+    check(type(all)=='table','Cannot read inventory snapshot')
+  end
   for i=1,n do
-    local stack,err=tp.getStackInSlot(s,i)
+    local stack,err
+    if all then stack=all[i-1] -- ItemStackArrayValue.getAll() is zero-based.
+    else stack,err=tp.getStackInSlot(s,i) end
     check(not err,'Cannot inspect inventory slot: '..tostring(err))
     if stack and stack.name then
       local id=M.identity(stack)
@@ -64,9 +73,33 @@ function M.new(cfg,bindings)
   end
   self.redstone=proxy(cfg.redstone.address,'redstone');self.redstoneSide=side(cfg.redstone.side)
   check(cfg.consumedSlot~=cfg.circuitSlot,'Consumed-item and reusable-circuit slots must differ')
-  return setmetatable(self,{__index=M})
+  setmetatable(self,{__index=M})
+  local rate=self:fluidRate()
+  self.detectedFluidRate=rate
+  self.fluidChunkLimit=cfg.fluidChunk
+  if self.fluidChunkLimit==nil or self.fluidChunkLimit=='auto' then
+    self.fluidChunkLimit=rate and math.max(1,math.min(128000,math.floor(rate*(cfg.transferWindowSeconds or 4)))) or 128000
+  end
+  check(type(self.fluidChunkLimit)=='number' and self.fluidChunkLimit>0,'fluidChunk must be auto or a positive number')
+  self.activePollSeconds=cfg.pollSeconds
+  if self.activePollSeconds==nil or self.activePollSeconds=='auto' then
+    self.activePollSeconds=rate and math.max(0.05,math.min(0.25,1024/rate)) or 0.1
+  end
+  check(type(self.activePollSeconds)=='number' and self.activePollSeconds>0,'pollSeconds must be auto or a positive number')
+  return self
 end
-function M:enable(value) self.redstone.setOutput(self.redstoneSide,value and 15 or 0) end
+function M:enable(value)
+  if self.lastEnabled==value then return false end
+  self.redstone.setOutput(self.redstoneSide,value and 15 or 0)
+  self.lastEnabled=value
+  return true
+end
+function M:fluidRate()
+  local query=self.inputFluids.tp.getFluidTransferRate
+  if not query then return nil end
+  local ok,rate=pcall(query)
+  if ok and type(rate)=='number' and rate>0 then return rate end
+end
 function M:setTargets(t) self.target=t end
 function M:stage()
   local i=self.inputItems;local f=self.inputFluids
@@ -106,7 +139,7 @@ end
 function M:fillFluid(name,need)
   local f=self.inputFluids
   for _,x in ipairs(tanks(f.tp,f.stageSide)) do if x.name==name and x.amount>0 then
-    local _,moved=f.tp.transferFluid(f.stageSide,f.machineSide,math.min(need,x.amount,self.cfg.fluidChunk),x.index-1+self.cfg.sourceTankBase)
+    local _,moved=f.tp.transferFluid(f.stageSide,f.machineSide,math.min(need,x.amount,self.fluidChunkLimit),x.index-1+self.cfg.sourceTankBase)
     check(type(moved)=='number','Fluid transfer failed: '..tostring(moved));return moved
   end end
   return 0
@@ -148,7 +181,7 @@ function M:drainOutput()
   local f=self.outputFluids;local i=self.outputItems
   local a=tanks(f.tp,f.machineSide)
   if a[1].amount>0 then
-    local _,n=f.tp.transferFluid(f.machineSide,f.storeSide,math.min(a[1].amount,self.cfg.fluidChunk),self.cfg.sourceTankBase)
+    local _,n=f.tp.transferFluid(f.machineSide,f.storeSide,math.min(a[1].amount,self.fluidChunkLimit),self.cfg.sourceTankBase)
     check(type(n)=='number','Output fluid transfer failed: '..tostring(n));return n
   end
   for _,s in ipairs(slots(i.tp,i.machineSide)) do if s.size>0 then
