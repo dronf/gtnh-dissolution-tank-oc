@@ -12,6 +12,10 @@ local function execute(recipe,options,sources)
  if type(recipe)=='string' then for _,r in ipairs(recipes) do if r.id==recipe then recipe=r;break end end end
  local options=options or {auto=true,snapshots=true,rate=163840,fluidLimit=128000,itemLimit=64,stageSlots=108}
  local p,initialIO=ioFixture.makePlatform(recipe,'external',options)
+ if options.emptyStage then
+  for n=1,p.stageI.n do p.stageI[n]=nil end
+  for _,tank in ipairs(p.stageF) do tank.amount=0;tank.name=nil end
+ end
  local useCore=core;local useDriver=driver;local script=cliSource
  if sources then
   useCore=assert(load(sources.core,'=baseline-core'))()
@@ -24,7 +28,7 @@ local function execute(recipe,options,sources)
  local root='/home/dissolution/';local files={[root..'bindings.dat']=serialize(ioFixture.bindings)}
  local metrics={jobWrites=0,fileWrites=0,sleepSeconds=0,loops=0,reboots=0}
  local time=0;local finished=false;local interrupted=false;local errors={};local lastLine=''
- local keys={'filesystem','serialization','computer','dt_io','dt_core','shell'};local old={}
+ local keys={'filesystem','serialization','computer','dt_io','dt_core','shell','event'};local old={}
  for _,k in ipairs(keys) do old[k]=package.loaded[k] end
  package.loaded.filesystem={path=function()return root end,exists=function(path)return files[path]~=nil end,
   remove=function(path)files[path]=nil;return true end,
@@ -32,7 +36,26 @@ local function execute(recipe,options,sources)
  package.loaded.serialization={serialize=serialize,unserialize=function(text)return assert(load('return '..text))()end}
  package.loaded.computer={uptime=function()return time end}
  package.loaded.dt_core=useCore
- package.loaded.dt_io={new=function()return useDriver.new(cfg,ioFixture.bindings)end}
+ local keyListener;local quitSent=false
+ local function sendQuit()
+  if keyListener and not quitSent then
+   quitSent=true;keyListener('key_down','keyboard',options.quitChar or 113,16,'operator')
+  end
+ end
+ package.loaded.event={listen=function(name,fn)assert(name=='key_down');keyListener=fn;metrics.listeners=(metrics.listeners or 0)+1;return true end,
+  ignore=function(name,fn)assert(name=='key_down' and fn==keyListener);keyListener=nil;metrics.ignored=(metrics.ignored or 0)+1;return true end}
+ package.loaded.dt_io={new=function()
+  local result=useDriver.new(cfg,ioFixture.bindings)
+  if options.quitDuringArmedRead then
+   local inputs=result.inputs
+   result.inputs=function(self)
+    local data=inputs(self)
+    if lastLine:find('[armed]',1,true) then sendQuit() end
+    return data
+   end
+  end
+  return result
+ end}
  package.loaded.shell={resolve=function()return root..'dt.lua' end}
  local oldOpen,oldSleep,oldDofile,oldPrint,oldStderr=io.open,os.sleep,dofile,print,io.stderr
  io.open=function(path,mode)
@@ -44,8 +67,12 @@ local function execute(recipe,options,sources)
  end
  os.sleep=function(seconds)
   seconds=seconds or 0;time=time+seconds;p:progress();metrics.loops=metrics.loops+1
-  if finished then error('BENCHMARK_FINISHED') end
+  if finished then
+   if options.quitAfterAcceptance then sendQuit();return end
+   error('BENCHMARK_FINISHED')
+  end
   metrics.sleepSeconds=metrics.sleepSeconds+seconds
+  if options.quitPhase and (options.quitPhase=='idle' or lastLine:find('['..options.quitPhase..']',1,true)) then sendQuit() end
   if options.interruptAfter and not interrupted and p.stats.fluidMoves>=options.interruptAfter then
    interrupted=true;metrics.reboots=metrics.reboots+1;error('TEST_REBOOT')
   end
@@ -60,15 +87,18 @@ local function execute(recipe,options,sources)
  print=function(...)
   local t={} for n=1,select('#',...) do t[#t+1]=tostring(select(n,...)) end
   lastLine=table.concat(t,' ')
+  if lastLine:find('Stopped by Q.',1,true) then metrics.stopped=true;metrics.stopMessage=lastLine end
   if lastLine:find('Input batch accepted',1,true) then finished=true end
  end
  io.stderr={write=function(_,s)errors[#errors+1]=s end}
  local ok,err=pcall(assert(load(script,'=dt.lua')),'run')
  if ok and options.interruptAfter and not finished then ok,err=pcall(assert(load(script,'=dt.lua')),'resume') end
+ if ok and options.resumeAfterQuit and metrics.stopped and not finished then ok,err=pcall(assert(load(script,'=dt.lua')),'resume') end
  io.open,os.sleep,dofile,print,io.stderr=oldOpen,oldSleep,oldDofile,oldPrint,oldStderr
  for _,k in ipairs(keys) do package.loaded[k]=old[k] end
  assert(ok,err)
- if not options.stopAfter then assert(finished,recipe.id..' | '..lastLine..' | fluid moves '..p.stats.fluidMoves..' | '..table.concat(errors,'\n')) end
+ if not options.stopAfter and not options.quitPhase and not options.quitDuringArmedRead then assert(finished,recipe.id..' | '..lastLine..' | fluid moves '..p.stats.fluidMoves..' | '..table.concat(errors,'\n')) end
+ if options.resumeAfterQuit then assert(finished,table.concat(errors,'\n')) end
  for k,v in pairs(p.stats) do metrics[k]=v end
  metrics.starts=p.starts;metrics.accepted=finished
  return metrics,p,files,initialIO

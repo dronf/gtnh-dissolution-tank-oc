@@ -44,6 +44,19 @@ local function makePlatform(r,outputMode,options)
  -- Use nonconsecutive source tank positions; the driver must rescan/select the right compartment.
  c.stageF[4].name=targets.fluidOrder[1];c.stageF[4].amount=targets.fluids[targets.fluidOrder[1]]
  c.stageF[2].name=targets.fluidOrder[2];c.stageF[2].amount=targets.fluids[targets.fluidOrder[2]]
+ if options.stageTankCapacity then
+  local staged={}
+  for _,tank in ipairs(c.stageF) do if tank.amount>0 then staged[#staged+1]={name=tank.name,amount=tank.amount} end end
+  for _,tank in ipairs(c.stageF) do tank.name=nil;tank.amount=0;tank.capacity=options.stageTankCapacity end
+  local index=1
+  for _,fluid in ipairs(staged) do
+   local remaining=fluid.amount
+   while remaining>0 do
+    local tank=assert(c.stageF[index],'staging capacity exceeded')
+    tank.name=fluid.name;tank.amount=math.min(remaining,tank.capacity);remaining=remaining-tank.amount;index=index+1
+   end
+  end
+ end
  local function itemTP(map)
   local tp={kind='transposer',
    getInventorySize=function(side)return assert(map[side]).n end,

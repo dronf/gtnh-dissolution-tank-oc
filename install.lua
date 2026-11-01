@@ -6,10 +6,10 @@ local shell=require('shell')
 assert(component.isAvailable('internet'),'Insert an Internet Card; HTTP must be enabled by the server')
 
 -- Pin one tested runtime snapshot so a download never mixes revisions.
-local revision='075b98d7dddc23cc25f5e54d5e97058110b8d9a8'
+local revision='4f43b67b0c78b62b2d8006a124374009e29ac889'
 local base='https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/'..revision..'/'
 local files={
-  {'dt.lua',12309},{'dt_core.lua',8317},{'dt_io.lua',12386},
+  {'dt.lua',13154},{'dt_core.lua',8577},{'dt_io.lua',12386},
   {'dt_bindings.lua',1733},{'recipes.lua',10944},{'config.lua',1666}
 }
 local args={...}

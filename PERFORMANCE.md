@@ -35,7 +35,7 @@ The following are host-side measurements of the real CLI and driver with mocked 
 | Monazite 9 / Old IV | 99 | 771 | 0 | 109 | 110 | 28 s |
 | Monazite 9 / New IV auto | 2 | 5 | 15 | 5 | 3 | 1 s |
 
-For Monazite 9 on the basic transposer, auto mode reduces 99 fluid requests to 10. IV auto mode needs two requests, one for each fluid. The simulations pass 126,695 assertions, including all 33 recipes and 66 interruptions after fluid movement; see [TEST-RESULTS.txt](TEST-RESULTS.txt). Live world commissioning remains necessary.
+For Monazite 9 on the basic transposer, auto mode reduces 99 fluid requests to 10. IV auto mode needs two requests, one for each fluid. These call counts use the original quad staging source; a fluid spanning two Ingredient Buffer compartments needs an additional request. The simulations pass 127,092 assertions, including all 33 recipes and 66 interruptions after fluid movement; see [TEST-RESULTS.txt](TEST-RESULTS.txt). Live world commissioning remains necessary.
 
 For reference, dividing total input volume by reported rate gives these **bandwidth-only floors**:
 
@@ -49,14 +49,14 @@ Actual loading takes longer, especially for small batches: both fluid callbacks,
 
 ## Update an existing installation
 
-1. Stop upstream feeding. Wait for **“Input batch accepted; ready for next staged lot”**, confirm the machine inputs are empty and both circuits are home, then press Ctrl+C. A recipe may still be processing; verify its expected products in ME separately. Do not change code/configuration during an unfinished journaled transaction.
+1. Stop upstream feeding. Wait for **“Input batch accepted; ready for next staged lot”**, confirm the machine inputs are empty and both circuits are home, then press Q (Ctrl+C on older versions). A recipe may still be processing; verify its expected products in ME separately. Do not change code/configuration during an unfinished journaled transaction.
 2. Back up the six Lua files and any `bindings.dat` while stopped. Download the following **three code files only** into your installation. Keep your configured UUIDs, sides, slots, commissioning flag and local state.
 
 ```sh
 cd /home/dissolution
-wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/075b98d7dddc23cc25f5e54d5e97058110b8d9a8/dt.lua dt.lua
-wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/075b98d7dddc23cc25f5e54d5e97058110b8d9a8/dt_core.lua dt_core.lua
-wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/075b98d7dddc23cc25f5e54d5e97058110b8d9a8/dt_io.lua dt_io.lua
+wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/4f43b67b0c78b62b2d8006a124374009e29ac889/dt.lua dt.lua
+wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/4f43b67b0c78b62b2d8006a124374009e29ac889/dt_core.lua dt_core.lua
+wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/4f43b67b0c78b62b2d8006a124374009e29ac889/dt_io.lua dt_io.lua
 ```
 
 Confirm all three downloads succeeded before continuing. If one fails, retry it or restore all three backed-up code files together. Do not run a mixed version.

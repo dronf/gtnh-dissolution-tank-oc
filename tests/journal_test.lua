@@ -15,7 +15,7 @@ local function run(failFlush)
  function machine:stage()return {items=self.stageItems,fluids=self.stageFluids}end
  function machine:capacityCheck()end
  local cfg={commissioningPassed=true,pollSeconds=0.25,jobTimeoutSeconds=1800,maxEUt=7680,preferCircuit=9,outputMode='external'}
- local keys={'filesystem','serialization','computer','dt_io','shell'};local old={}
+ local keys={'filesystem','serialization','computer','dt_io','shell','event'};local old={}
  for _,k in ipairs(keys) do old[k]=package.loaded[k] end
  package.loaded.filesystem={path=function()return root end,exists=function(path)return files[path]~=nil end,
   remove=function(path)files[path]=nil;return true end,
@@ -24,6 +24,7 @@ local function run(failFlush)
  package.loaded.computer={uptime=function()return time end}
  package.loaded.dt_io={new=function()return machine end}
  package.loaded.shell={resolve=function()return root..'dt.lua' end}
+ package.loaded.event={listen=function()return true end,ignore=function()return true end}
  local oldOpen,oldSleep,oldDofile,oldPrint,oldStderr=io.open,os.sleep,dofile,print,io.stderr
  io.open=function(path,mode)
   if mode=='r' then return {read=function()return files[path]end,close=function()return nil end} end
