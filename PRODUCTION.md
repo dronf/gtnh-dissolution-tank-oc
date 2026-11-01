@@ -43,7 +43,7 @@ Keep the computer, both transposers, machine, ME interfaces/outputs and their po
 
 ## AE2 on-demand feeding: recommended production layout
 
-For unattended mixed recipes, use **one Ingredient Buffer** as the shared item-and-fluid staging block. Feed it from **one ME Dual Interface**. The ingredient buffer exposes both an item inventory and fluid compartments, allowing the same provider's blocking mode to see the complete staged lot. Your current separate chest and staging quad can still be used for manual operation; ordinary chest-only blocking cannot isolate their combined contents.
+For unattended mixed recipes, either use the **dedicated staging subnet** described below or use **one Ingredient Buffer** as a shared item-and-fluid staging block. Feed the shared-buffer option from **one ME Dual Interface**. The ingredient buffer exposes both an item inventory and fluid compartments, allowing the same provider's blocking mode to see the complete staged lot. Ordinary chest-only blocking cannot isolate separate item and fluid buffers, but subnet-wide advanced blocking can; an existing correctly configured staging subnet does not require rebuilding with an Ingredient Buffer.
 
 The checked AE2FC **1.5.116-gtnh** Ingredient Buffer has **9 item slots and four 64,000 L fluid compartments**. Large Ingredient Buffer has 27 slots and seven 64,000 L compartments. The standard buffer has enough capacity for every single recipe in this catalog: a 90,000 L input spans two compartments. The driver sums matching staged fluids and transfers from each source compartment; all 33 recipes pass simulations with 64,000 L source compartments. The actual machine input remains the **LuV Quad Input Hatch**, with 128,000 L per compartment.
 
@@ -63,6 +63,34 @@ Example **top view only** for diagonally separated transposers (rotate to match 
 ```
 
 In this example the fluid transposer's `stageSide='east'`, the item transposer's `stageSide='north'`, and its `lockerSide='east'`. Both machine sides are down. The buffer is level with the transposers, not balanced above their diagonal corner. This diagram assumes no computer/locker already occupies those cells: rearrange cable-connected components or rotate the layout as needed. Change sides only after finishing the existing transaction.
+
+## Alternative: keep the separate buffers on a dedicated staging subnet
+
+An isolated ME subnet with an **item storage bus on the staging chest** and a **fluid storage bus on the staging hatch** is a valid alternative. Keep your existing transposers and stage directions. Use this route:
+
+```text
+Main ME network: pattern-holding ME Dual Interface
+                         | output into
+Staging subnet: receiving ME Dual Interface + Advanced Blocking Card
+                         |
+                  isolated ME cable
+                    /           \
+            item storage bus   fluid storage bus
+                    |                  |
+              staging chest      staging LuV quad
+                    |                  |
+                 existing input transposers
+```
+
+Fit the **Advanced Blocking Card in the receiving interface on the staging subnet**. In the checked installed AE2 version, this makes the sender inspect the receiving subnet's visible item and fluid contents, rather than only the interface's local slots. Use a **Dual Interface on both sides** for actual fluid delivery. Leave the receiving interface's stock/keep-supplied configuration empty.
+
+On the main-network pattern interface, enable ordinary blocking, disable Smart Blocking, and retain the **Locking Card → Until crafting result is returned** setting. Use a single sender for the tank. Keep the receiver and storage buses on a separate data network; power can cross quartz fiber without merging the data grids.
+
+Use **read/write storage buses** so subnet-wide blocking can see staged contents. Do not hide their contents with write-only access. The subnet should expose only these staging inventories: no drives, unrelated tanks, circuit locker or direct machine inputs. Otherwise ingredients may be routed elsewhere or unrelated contents may prevent empty-subnet detection. Native machine outputs still return to the main ME network.
+
+Before unattended use, leave fluid in the staging hatch with the chest empty and verify the next different pattern does not dispatch. Repeat with items only, then run fluid-only recipes and simultaneous requests for two different recipes. Clear the test contents before normal crafting.
+
+This alternative is based on the installed-version [interface inventory adapter](https://github.com/GTNewHorizons/Applied-Energistics-2-Unofficial/blob/rv3-beta-1095-GTNH/src/main/java/appeng/util/inv/AdaptorDualityInterface.java), whose Advanced Blocking Card path checks the subnet monitors for every supported stack type, including fluids. Live queue isolation still requires the tests above.
 
 ## Live production acceptance checks
 
