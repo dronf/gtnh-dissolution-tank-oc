@@ -20,8 +20,18 @@ local function read(path)
   end
   if filesystem.exists(path) or filesystem.exists(path..'.bak') then error('Corrupt data file: '..path) end
 end
+local function writeFile(path,contents)
+  local f=assert(io.open(path,'w'))
+  local written,writeReason=f:write(contents)
+  local flushed,flushReason=f:flush()
+  local closed,closeReason=f:close()
+  assert(written,'Cannot write '..path..': '..tostring(writeReason))
+  assert(flushed,'Cannot flush '..path..': '..tostring(flushReason))
+  -- OpenOS may return nil without an error after a successful close.
+  assert(closed~=false and closeReason==nil,'Cannot close '..path..': '..tostring(closeReason))
+end
 local function save(path,value)
-  local f=assert(io.open(path..'.new','w'));assert(f:write(serialization.serialize(value)));assert(f:close())
+  writeFile(path..'.new',serialization.serialize(value))
   if filesystem.exists(path..'.bak') then assert(filesystem.remove(path..'.bak')) end
   if filesystem.exists(path) then assert(filesystem.rename(path,path..'.bak')) end
   assert(filesystem.rename(path..'.new',path))
@@ -151,7 +161,7 @@ local function body()
   if command=='run' then noJob() else assert(job,'No unfinished transaction to resume') end
   if job then assert(byId[job.recipe] and job.signature==signature(byId[job.recipe]),
     'Recipe/bindings/config changed since this transaction; restore them before resume') end
-  local f=assert(io.open(lockPath,'w'));f:write(tostring(computer.uptime()));f:close()
+  writeFile(lockPath,tostring(computer.uptime()))
   local lastMessage,jobStart=nil,computer.uptime()
   while true do
     if not job then
