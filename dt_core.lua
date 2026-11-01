@@ -98,6 +98,9 @@ function M.step(io, job, recipe, bindings)
   local t=M.targets(recipe,bindings)
   if io.setTargets then io:setTargets(t) end
   local input=io:inputs()
+  -- Inventory callbacks may yield and dispatch the operator's quit key.
+  -- Recheck before a phase can move another input or raise the start signal.
+  if io.shouldStop and io:shouldStop() then io:enable(false);return 'Stopping at operator request',false end
   if job.phase~='armed' then io:enable(false) end
   if job.phase=='fluids' then
     check(empty(input.items),'Items/circuit appeared before fluid loading finished')

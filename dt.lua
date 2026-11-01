@@ -77,6 +77,7 @@ if command=='help' then
   dt.lua plan                         identify complete staged recipe (no transfers)
   dt.lua probe TANK                    move/return 1 L to verify selected-tank API
   dt.lua run                          run new jobs; refuse an unfinished journal
+                                      press Q to stop; preserves unfinished work
   dt.lua resume                       continue a journal after physical inspection
   dt.lua unlock                       remove stale process lock after a reboot
   dt.lua clear CONFIRM_EMPTY           clear journal ONLY after machine is idle/inputs empty
@@ -112,6 +113,8 @@ ioMachine:enable(false)
 os.sleep(1) -- Let the Machine Controller cover observe the low signal before touching inventories.
 local function noJob() assert(not job,'An unfinished transaction exists; use resume or inspect/empty the machine before clear') end
 local function signature(r) return stable({recipe=r,bindings=bindings,config=cfg}) end
+local quitRequested=false
+local keyEvents,quitListener
 local function body()
   if command=='scan' then ioMachine:scan();return end
   if command=='rates' then
@@ -179,9 +182,16 @@ local function body()
   if job then assert(byId[job.recipe] and job.signature==signature(byId[job.recipe]),
     'Recipe/bindings/config changed since this transaction; restore them before resume') end
   writeFile(lockPath,tostring(computer.uptime()))
+  keyEvents=require('event')
+  quitListener=function(_,_,character)
+    if character==113 or character==81 then quitRequested=true end -- q / Q
+  end
+  assert(keyEvents.listen('key_down',quitListener),'Cannot register the Q quit key')
+  ioMachine.shouldStop=function()return quitRequested end
+  print('Controller running. Press Q to stop safely; unfinished input work is retained.')
   local lastMessage,jobStart=nil,computer.uptime()
   local savedPhase=job and job.phase
-  while true do
+  while not quitRequested do
     local progressed=false
     if not job then
       core.preflight(ioMachine)
@@ -212,6 +222,11 @@ local function body()
   end
 end
 local ok,err=xpcall(body,debug.traceback)
+if keyEvents and quitListener then pcall(keyEvents.ignore,'key_down',quitListener) end
 pcall(function()ioMachine:enable(false)end)
 if filesystem.exists(lockPath) then filesystem.remove(lockPath) end
 if not ok then io.stderr:write(tostring(err)..'\nMachine start signal OFF; journal retained if present.\n') end
+if ok and quitRequested then
+  print(job and 'Stopped by Q. Start signal OFF; transaction retained. Inspect, then use resume.'
+    or 'Stopped by Q. Start signal OFF; no unfinished input transaction. Use run to restart.')
+end
