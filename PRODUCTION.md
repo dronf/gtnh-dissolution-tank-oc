@@ -28,13 +28,14 @@ Yes: after the live checks below, enable foreground autostart so the terminal sh
 edit /home/.shrc
 ```
 
-Add this **one line**, preserving any existing contents:
+Replace the previous absolute-path startup command with these **two lines**, preserving any unrelated existing contents:
 
 ```sh
-lua /home/dissolution/dt.lua run
+cd /home/dissolution
+lua dt.lua run
 ```
 
-Do not also start a background copy or add a second startup command. OpenOS sources `/home/.shrc` from its profile. The foreground controller runs until Q or a fault, then returns to the prompt. Q does not restart it automatically in a loop. To disable autostart, press Q and remove the line from `.shrc`.
+The explicit working directory keeps all runtime module/configuration lookups in the installation folder. Do not retain the old `lua /home/dissolution/dt.lua run` line, start a background copy, or add a second launch. OpenOS sources `/home/.shrc` from its profile. The foreground controller runs until Q or a fault, then returns to the prompt. Q does not restart it automatically in a loop. To disable autostart, press Q and remove these two lines from `.shrc`.
 
 **This retains the existing recovery guards.** Autostart refuses a leftover `controller.lock` or unfinished transaction. A power cut or reboot while the controller was running can leave a lock even if it was merely idle; autostart then stops for inspection. Confirm no controller is running, inspect the inputs/circuits and machine, run `lua dt.lua unlock`, then use `resume` for a retained transaction or `run` if none exists. It never automatically unlocks, erases state, or replays an uncertain batch. Cleanly press Q before a planned reboot to allow normal automatic startup afterward.
 
