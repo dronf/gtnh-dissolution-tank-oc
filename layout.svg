@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" role="img" aria-labelledby="title desc">
+<title id="title">Dissolution Tank logical wiring</title>
+<desc id="desc">Two transposers serve only fluid inputs and item/circuit inputs. A separate redstone signal controls starts. Native ME output hatch and bus export products directly without output transposers.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#42637d"/></marker></defs>
+<rect width="1100" height="560" rx="18" fill="#f1f5f9"/>
+<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#172d40} .h{font-size:20px;font-weight:700}.s{font-size:16px}.box{fill:white;stroke:#b8c9d8;stroke-width:2}.tp{fill:#d8eef0;stroke:#34808b;stroke-width:2}.line{stroke:#42637d;stroke-width:3;fill:none;marker-end:url(#arrow)}.cable{stroke:#459c8c;stroke-width:2;stroke-dasharray:7 5;fill:none}</style>
+<text x="30" y="35" class="h">Logical connections • arrows show material flow</text>
+<rect x="30" y="60" width="260" height="75" rx="10" class="box"/><text x="48" y="90" class="h">Staging fluid quad</text><text x="48" y="115" class="s">LuV quad · ≥90k L per fluid</text>
+<rect x="395" y="60" width="235" height="75" rx="10" class="tp"/><text x="418" y="90" class="h">A · Fluid-input TP</text><text x="418" y="115" class="s">Measured recipe amounts</text>
+<rect x="735" y="60" width="335" height="75" rx="10" class="box"/><text x="753" y="90" class="h">Machine LuV Quad Input Hatch</text><text x="753" y="115" class="s">128,000 L per compartment</text>
+<path d="M290 97H395M630 97H735" class="line"/>
+<rect x="30" y="175" width="260" height="75" rx="10" class="box"/><text x="48" y="205" class="h">Staging item chest</text><text x="48" y="230" class="s">Consumed ingredients only</text>
+<rect x="395" y="175" width="235" height="75" rx="10" class="tp"/><text x="418" y="205" class="h">B · Item-input TP</text><text x="418" y="230" class="s">Items, then real circuit</text>
+<rect x="735" y="175" width="335" height="75" rx="10" class="box"/><text x="753" y="205" class="h">Machine ordinary Input Bus</text><text x="753" y="230" class="s">Slot 1: ingredients · slot 2: circuit</text>
+<path d="M290 212H395M630 212H735" class="line"/>
+<rect x="395" y="280" width="235" height="65" rx="10" class="box"/><text x="412" y="306" class="h">Circuit locker</text><text x="412" y="330" class="s">Slot 1: C1 · slot 2: C9</text>
+<path d="M512 280V250" class="line" style="marker-start:url(#arrow)"/>
+<rect x="30" y="385" width="260" height="75" rx="10" class="box"/><text x="48" y="415" class="h">Machine products</text><text x="48" y="440" class="s">Fluids and item byproducts</text>
+<rect x="395" y="385" width="235" height="75" rx="10" class="box"/><text x="410" y="415" class="h">ME Output Hatch/Bus</text><text x="410" y="440" class="s">Native export · no output TP</text>
+<rect x="735" y="385" width="335" height="75" rx="10" class="box"/><text x="753" y="415" class="h">Your ME network storage</text><text x="753" y="440" class="s">Your existing output path handles this</text>
+<path d="M290 422H395M630 422H735" class="line"/>
+<text x="35" y="300" class="h">One OpenOS computer</text><text x="35" y="326" class="s">OC cable network → A and B</text>
+<text x="735" y="300" class="h">Independent redstone gate</text><text x="735" y="326" class="s">Computer → Enable-with-signal cover</text>
+<text x="35" y="505" class="h">Controller scope: exact input handoffs and circuit returns</text>
+<text x="35" y="535" class="s">A and B are the only transposers. No OC output inventory monitoring. This is not a casing blueprint.</text>
+</svg>

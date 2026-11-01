@@ -1,0 +1,17 @@
+# Per-world identities and unfinished transactions
+bindings.dat*
+transaction.dat*
+controller.lock
+
+# Host-side Python environment/cache
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local editor/OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

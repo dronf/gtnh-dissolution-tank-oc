@@ -1,0 +1,160 @@
+local filesystem=require('filesystem')
+local serialization=require('serialization')
+local computer=require('computer')
+local here=filesystem.path(debug.getinfo(1,'S').source:sub(2))
+package.path=here..'?.lua;'..package.path
+local core=require('dt_core')
+local driver=require('dt_io')
+local cfg=dofile(here..'config.lua')
+local recipes=dofile(here..'recipes.lua')
+assert(#recipes==33,'Expected the verified 33-recipe catalog')
+local byId={} for _,r in ipairs(recipes) do byId[r.id]=r end
+local function read(path)
+  for _,p in ipairs({path,path..'.bak'}) do
+    if filesystem.exists(p) then
+      local f=assert(io.open(p,'r'));local text=f:read('*a');f:close()
+      local ok,value=pcall(serialization.unserialize,text)
+      if ok and type(value)=='table' then return value end
+    end
+  end
+  if filesystem.exists(path) or filesystem.exists(path..'.bak') then error('Corrupt data file: '..path) end
+end
+local function save(path,value)
+  local f=assert(io.open(path..'.new','w'));assert(f:write(serialization.serialize(value)));assert(f:close())
+  if filesystem.exists(path..'.bak') then assert(filesystem.remove(path..'.bak')) end
+  if filesystem.exists(path) then assert(filesystem.rename(path,path..'.bak')) end
+  assert(filesystem.rename(path..'.new',path))
+end
+local function erase(path)
+  for _,suffix in ipairs({'','.bak','.new'}) do if filesystem.exists(path..suffix) then assert(filesystem.remove(path..suffix)) end end
+end
+local function stable(x)
+  if type(x)~='table' then return type(x)..':'..tostring(x) end
+  local k={} for a in pairs(x) do k[#k+1]=a end
+  table.sort(k,function(a,b)return tostring(a)<tostring(b) end)
+  local o={} for _,a in ipairs(k) do o[#o+1]=stable(a)..'='..stable(x[a]) end
+  return '{'..table.concat(o,',')..'}'
+end
+local bindingPath=here..'bindings.dat'
+local jobPath=here..'transaction.dat'
+local lockPath=here..'controller.lock'
+local bindings=read(bindingPath) or {items={},fluids={}}
+local job=read(jobPath)
+local argv={...};local command=argv[1] or 'help'
+if command=='help' then
+  print([[Dissolution Tank controller
+  dt.lua components                  list component addresses
+  dt.lua recipes                     print all 33 recipe IDs
+  dt.lua scan                        inspect configured inventories and tanks
+  dt.lua bind-item SYMBOL SLOT        sample staging-chest item identity
+  dt.lua bind-fluid SYMBOL TANK       sample staging-tank fluid registry name
+  dt.lua bind-circuits                learn and verify the two circuit locker slots
+  dt.lua check                        check capacities, bindings and circuits
+  dt.lua plan                         identify complete staged recipe (no transfers)
+  dt.lua probe TANK                    move/return 1 L to verify selected-tank API
+  dt.lua run                          run new jobs; refuse an unfinished journal
+  dt.lua resume                       continue a journal after physical inspection
+  dt.lua unlock                       remove stale process lock after a reboot
+  dt.lua clear CONFIRM_EMPTY           clear journal ONLY after machine is idle/inputs empty
+Edit config.lua first. Read GUIDE.html before commissioning.]])
+  return
+end
+if command=='components' then
+  local component=require('component')
+  for _,kind in ipairs({'transposer','redstone'}) do for a in component.list(kind) do print(kind,a) end end
+  return
+elseif command=='recipes' then
+  for n,r in ipairs(recipes) do print(n,r.id,r.name,'circuit '..r.circuit,'EU/t '..r.eut) end
+  return
+end
+if command=='unlock' then
+  assert(not argv[2], 'Usage: dt.lua unlock; first confirm no other controller process is running')
+  if filesystem.exists(lockPath) then assert(filesystem.remove(lockPath)) end
+  print('Stale process lock removed. This did not clear the transaction journal.');return
+end
+assert(not filesystem.exists(lockPath),'Another controller may be running. After a reboot, inspect the machine then use unlock.')
+local ioMachine=driver.new(cfg,bindings)
+ioMachine:enable(false)
+os.sleep(1) -- Let the Machine Controller cover observe the low signal before touching inventories.
+local function noJob() assert(not job,'An unfinished transaction exists; use resume or inspect/empty the machine before clear') end
+local function signature(r) return stable({recipe=r,bindings=bindings,config=cfg}) end
+local function body()
+  if command=='scan' then ioMachine:scan();return end
+  if command=='bind-item' then
+    noJob();assert(argv[2] and tonumber(argv[3]),'Usage: bind-item SYMBOL SLOT')
+    bindings.items[argv[2]]=ioMachine:sampleItem(tonumber(argv[3]));save(bindingPath,bindings)
+    print('Bound',argv[2],core.itemKey(bindings.items[argv[2]]));return
+  elseif command=='bind-fluid' then
+    noJob();assert(argv[2] and tonumber(argv[3]),'Usage: bind-fluid SYMBOL TANK')
+    bindings.fluids[argv[2]]=ioMachine:sampleFluid(tonumber(argv[3]));save(bindingPath,bindings)
+    print('Bound',argv[2],bindings.fluids[argv[2]]);return
+  elseif command=='bind-circuits' then
+    noJob()
+    local e=ioMachine.inputItems
+    local one=e.tp.getStackInSlot(e.lockerSide,cfg.circuitLockerSlots[1])
+    assert(one and one.size==1 and one.damage==1,'Locker must contain exactly one circuit programmed to 1')
+    bindings.items.circuit=driver.identity(one)
+    for _,n in ipairs({1,9}) do assert(ioMachine:circuitHome(n,core.resolveItem({key='circuit',damage=n},bindings)),
+      'Locker must contain exactly one circuit programmed to '..n..' in its configured slot') end
+    save(bindingPath,bindings);print('Bound reusable circuit identities and verified locker');return
+  elseif command=='check' then
+    ioMachine:capacityCheck()
+    local count=0
+    for _,r in ipairs(recipes) do
+      local ok,t=pcall(core.targets,r,bindings)
+      if ok then count=count+1 else print(r.id,t) end
+    end
+    for _,n in ipairs({1,9}) do
+      local key=core.resolveItem({key='circuit',damage=n},bindings)
+      assert(ioMachine:circuitHome(n,key),'Circuit '..n..' must be home for commissioning check')
+    end
+    print('Recipes with all material bindings:',count,'/ 33')
+    print('Output mode:',ioMachine.outputMode)
+    print('This does not verify wiring polarity, live recipe validity, power or maintenance.');return
+  elseif command=='plan' then
+    noJob();local match,reason=core.match(ioMachine:stage(),recipes,bindings,cfg)
+    if match then print(match.recipe.id,match.batches,'batch(es) staged; one will be loaded at a time') else print(reason) end
+    return
+  elseif command=='probe' then noJob();assert(tonumber(argv[2]),'Usage: probe TANK');ioMachine:probe(tonumber(argv[2]));return
+  elseif command=='clear' then
+    assert(argv[2]=='CONFIRM_EMPTY','Usage: clear CONFIRM_EMPTY, after visually verifying the machine is idle')
+    core.preflight(ioMachine)
+    for _,n in ipairs({1,9}) do assert(ioMachine:circuitHome(n,core.resolveItem({key='circuit',damage=n},bindings)),
+      'Restore both circuits to the locker before clearing') end
+    erase(jobPath);print('Journal cleared. Visually verify no recipe is still running before run.');return
+  end
+  assert(command=='run' or command=='resume','Unknown command; use help')
+  assert(cfg.commissioningPassed,'Finish commissioning, then set commissioningPassed=true in config.lua')
+  ioMachine:capacityCheck()
+  if command=='run' then noJob() else assert(job,'No unfinished transaction to resume') end
+  if job then assert(byId[job.recipe] and job.signature==signature(byId[job.recipe]),
+    'Recipe/bindings/config changed since this transaction; restore them before resume') end
+  local f=assert(io.open(lockPath,'w'));f:write(tostring(computer.uptime()));f:close()
+  local lastMessage,jobStart=nil,computer.uptime()
+  while true do
+    if not job then
+      core.preflight(ioMachine)
+      local match,reason=core.match(ioMachine:stage(),recipes,bindings,cfg)
+      if match then
+        job={recipe=match.recipe.id,phase='fluids',signature=signature(match.recipe)}
+        save(jobPath,job);jobStart=computer.uptime();lastMessage=nil
+      elseif reason~=lastMessage then print(reason);lastMessage=reason end
+    else
+      local r=assert(byId[job.recipe],'Unknown recipe in journal')
+      assert(computer.uptime()-jobStart<cfg.jobTimeoutSeconds,'Transaction timed out. Journal retained; inspect power, transfers and machine status before resume.')
+      save(jobPath,job) -- durable intent BEFORE any transfer, including the reusable circuit.
+      local message=core.step(ioMachine,job,r,bindings)
+      local status=r.id..' ['..job.phase..'] '..message
+      if status~=lastMessage then print(status);lastMessage=status end
+      if job.phase=='complete' then
+        core.preflight(ioMachine);erase(jobPath);job=nil
+        print(core.managesOutputs(ioMachine) and 'Ready for next batch' or 'Input batch accepted; ready for next staged lot (outputs external)')
+      end
+    end
+    os.sleep(cfg.pollSeconds)
+  end
+end
+local ok,err=xpcall(body,debug.traceback)
+pcall(function()ioMachine:enable(false)end)
+if filesystem.exists(lockPath) then filesystem.remove(lockPath) end
+if not ok then io.stderr:write(tostring(err)..'\nMachine start signal OFF; journal retained if present.\n') end

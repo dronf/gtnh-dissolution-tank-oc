@@ -1,0 +1,34 @@
+﻿Recipe ID,Name,Consumed items,Fluids (GT L / API units),Reusable circuit,Fluid output,Amount,EU/t,Seconds,Other outputs
+monazite_1,"Monazite dilution, circuit 1",1 saltpeter,10000 water; 1000 monazite_muddy,1,Diluted Rare Earth Monazite Mud,11000,480,45.0,"Also 4 tiny Hafnia-Zirconia Blend, 1 Thorianite dust, 2 tiny Monazite."
+monazite_9,"Monazite dilution, circuit 9",9 saltpeter,90000 water; 9000 monazite_muddy,9,Diluted Rare Earth Monazite Mud,99000,480,405.0,"Also 4 Hafnia-Zirconia Blend dust, 9 Thorianite dust, 2 Monazite dust."
+bastnasite,Bastnasite dilution,1 saltpeter,10000 water; 1000 bastnasite_conditioned,none,Diluted Rare Earth Bastnasite Mud,11000,1920,50.0,Also 1 Gangue dust.
+samarium_leach_1,"Samarium leaching, circuit 1",,1000 nitric_acid; 1000 samarium_muddy,1,Samarium Rare Earth Mud,2000,1920,10.0,80%: 1 Cerium Dioxide dust; 60%: 1 Cerium Ore Concentrate dust.
+samarium_leach_9,"Samarium leaching, circuit 9",,9000 nitric_acid; 9000 samarium_muddy,9,Samarium Rare Earth Mud,18000,7680,15.0,80%: 9 Cerium Dioxide dust; 60%: 9 Cerium Ore Concentrate dust.
+samarium_dilute_1,"Samarium dilution, circuit 1",,9000 water; 1000 samarium_mud,1,Diluted Samarium Rare Earth Solution,10000,1920,30.0,"90% and 60% rolls, each for 1 Neodymic Rare Earth Concentrate dust."
+samarium_dilute_9,"Samarium dilution, circuit 9",,81000 water; 9000 samarium_mud,9,Diluted Samarium Rare Earth Solution,90000,7680,45.0,"90% and 60% rolls, each for 9 Neodymic Rare Earth Concentrate dust."
+prismarine_fresh,Prismarine fresh leaching,24 prismarine_shard,4000 industrial_hf; 4000 hydrogen_peroxide,none,Prismarine Solution,8000,7680,20.0,Also 4 Certus Quartz dust.
+prismarine_recycle,Prismarine recycled leaching,6 prismarine_shard,6000 prismarine_peroxide; 2000 hydrogen_peroxide,none,Prismarine Solution,8000,7680,20.0,Also 1 Nether Quartz dust.
+flora_flower_1,Glimmering Orange Flower,16 flower meta 1,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 5 × 16
+flora_flower_2,Glimmering Magenta Flower,16 flower meta 2,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 7 × 16
+flora_flower_3,Glimmering Light Blue Flower,16 flower meta 3,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 4 × 16
+flora_flower_4,Glimmering Yellow Flower,16 flower meta 4,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 4 × 16
+flora_flower_5,Glimmering Lime Flower,16 flower meta 5,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 6 × 16
+flora_flower_6,Glimmering Pink Flower,16 flower meta 6,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 0 × 16
+flora_flower_7,Glimmering Gray Flower,16 flower meta 7,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 2 × 16
+flora_flower_8,Glimmering Light Gray Flower,16 flower meta 8,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 15 × 16
+flora_flower_9,Glimmering Cyan Flower,16 flower meta 9,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 1 × 16
+flora_flower_10,Glimmering Purple Flower,16 flower meta 10,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 3 × 16
+flora_flower_0,Glimmering White Flower,16 flower meta 0,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 1 × 16
+flora_flower_11,Glimmering Blue Flower,16 flower meta 11,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 5 × 16
+flora_flower_12,Glimmering Brown Flower,16 flower meta 12,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 12 × 16
+flora_flower_13,Glimmering Green Flower,16 flower meta 13,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:foliage / metadata 13 × 16
+flora_flower_14,Glimmering Red Flower,16 flower meta 14,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 8 × 16
+flora_flower_15,Glimmering Black Flower,16 flower meta 15,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:plants / metadata 5 × 16
+flora_virus_0,Botania virus / metadata 0,16 virus meta 0,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 13 × 16
+flora_witchery_ingredient_78,Witchery ingredient / metadata 78,64 witchery_ingredient meta 78,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers2 / metadata 7 × 16
+flora_witchery_ingredient_21,Witchery ingredient / metadata 21,16 witchery_ingredient meta 21,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:flowers / metadata 8 × 16
+flora_witchery_ingredient_22,Witchery ingredient / metadata 22,16 witchery_ingredient meta 22,800 purifying_fluid; 800 liquid_death,none,McGuffium239,396,480,0.5,BiomesOPlenty:plants / metadata 15 × 16
+flora_golden_oak_2,ThaumicBases goldenOakSapling / metadata 2,1 golden_oak meta 2,8000 purifying_fluid; 8000 liquid_death,none,McGuffium239,3960,1920,4.0,BiomesOPlenty:flowers2 / metadata 2 × 1
+flora_golden_oak_3,ThaumicBases goldenOakSapling / metadata 3,1 golden_oak meta 3,8000 purifying_fluid; 8000 liquid_death,none,McGuffium239,3960,1920,4.0,BiomesOPlenty:flowers / metadata 11 × 1
+flora_rainbow_cactus_0,ThaumicBases rainbowCactus / metadata 0,1 rainbow_cactus meta 0,200 purifying_fluid; 200 liquid_death,none,McGuffium239,144,480,0.5,BiomesOPlenty:plants / metadata 12 × 1
+flora_rose_vine_0,WitchingGadgets WG_RoseVine / metadata 0,1 rose_vine meta 0,200 purifying_fluid; 200 liquid_death,none,McGuffium239,144,480,0.5,BiomesOPlenty:foliage / metadata 7 × 1

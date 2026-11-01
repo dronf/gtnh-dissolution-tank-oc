@@ -1,0 +1,954 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dissolution Tank — OpenComputers build guide</title><style>
+:root{color-scheme:light;--ink:#203247;--muted:#566b7b;--line:#d5e0e9;--accent:#126b73}
+*{box-sizing:border-box}body{margin:0;background:#edf2f7;color:var(--ink);font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1180px;margin:32px auto;background:white;padding:55px 65px 75px;border:1px solid var(--line);border-radius:15px;box-shadow:0 12px 45px #19344b0a}
+h1{font-size:39px;line-height:1.18;letter-spacing:-1.1px;margin:0 0 20px;color:#14364d}h2{font-size:27px;line-height:1.3;margin:55px 0 20px;padding-top:12px;border-top:2px solid var(--line)}h3{font-size:20px;margin-top:30px}h4{font-size:17px}p{margin:14px 0}a{color:var(--accent);text-underline-offset:3px}li{margin:9px 0}strong{color:#173f54}
+img{max-width:100%;height:auto;margin:16px 0;border-radius:12px}code{font:0.86em/1.6 ui-monospace,Consolas,monospace;background:#edf3f6;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}pre{background:#172f43;color:#f2f7fa;overflow-x:auto;padding:20px 24px;border-radius:9px}pre code{background:transparent;color:inherit;padding:0;overflow-wrap:normal}
+.table-scroll{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:8px}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.55}th{text-align:left;background:#e9f1f4;color:#173e51}th,td{padding:11px 12px;vertical-align:top;border-bottom:1px solid var(--line)}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#f7f9fb}td:first-child{min-width:145px}td code{font-size:12px}table code{white-space:normal}.toc{background:#f1f6f8;border-radius:9px;padding:15px 24px;margin:28px 0}.toc ul{list-style:none;padding-left:16px}.toc>ul{padding-left:0}.toc li{margin:6px 0}.toc a{text-decoration:none}
+.eyebrow{text-transform:uppercase;font-size:12px;letter-spacing:2px;font-weight:700;color:#337682;margin-bottom:20px}.footer{border-top:1px solid var(--line);margin-top:45px;padding-top:15px;color:var(--muted);font-size:13px}
+@media(max-width:750px){main{margin:0;padding:28px 20px;border:0;border-radius:0}h1{font-size:31px}h2{font-size:24px}table{min-width:650px}pre{padding:16px}}
+@media print{body{background:white;font-size:10pt}main{max-width:none;margin:0;padding:0;border:0;box-shadow:none}h1{font-size:25pt}h2{font-size:17pt;margin-top:25px}h3{font-size:13pt}pre{white-space:pre-wrap;background:#f0f3f5;color:#17344a}a{color:inherit}table{font-size:8pt}th,td{padding:6px}tr,pre,img{break-inside:avoid}.table-scroll{overflow:visible}.toc{break-after:page}}
+</style></head><body><main><div class="eyebrow">GTNH automation field guide · 01 November 2026</div><h1 id="dissolution-tank-automation-with-opencomputers">Dissolution Tank automation with OpenComputers</h1>
+<p><strong>GTNH 2.9 · all 33 recipes · two transposers · native ME outputs · reusable circuits</strong><br />
+Prepared 1 November 2026. Revised to make native ME export the default.</p>
+<p>This system watches a staging chest and staging fluid buffer, recognizes a complete recipe, and loads exactly one input batch into the Dissolution Tank. It verifies both fluid quantities before loading consumed items, inserts a required programmed circuit last, then allows the machine to start. Once those inputs are consumed, it returns the same circuit to its locker and can prepare the next batch.</p>
+<p><strong>Your normal output path handles the products:</strong> an ME Output Hatch for fluids and an ME Output Bus, or your existing item export path, for item byproducts. The default controller has no output transposers, output addresses, product buffers, or output-inventory polling. It tracks input acceptance, not finished production or delivery to ME.</p>
+<p>The catalog contains <strong>33 recipes: 9 processing recipes and 24 flora conversions</strong>. Inputs were cross-checked against GTNH sources and 33 unique entries in the available archived recipe dump. Simulated tests exercise all recipes in both the new external-output mode and the optional original managed-output mode. <strong>This has not been run inside Minecraft.</strong> Compare the reference with NEI on your pack/server build and complete the live commissioning steps.</p>
+<div class="toc">
+<ul>
+<li><a href="#1-what-you-are-building">1. What you are building</a><ul>
+<li><a href="#the-operating-sequence">The operating sequence</a></li>
+</ul>
+</li>
+<li><a href="#2-parts-and-capacities">2. Parts and capacities</a><ul>
+<li><a href="#native-output-setup">Native output setup</a></li>
+</ul>
+</li>
+<li><a href="#3-build-and-wire-it">3. Build and wire it</a><ul>
+<li><a href="#a-machine-settings">A. Machine settings</a></li>
+<li><a href="#b-two-transposer-connections">B. Two transposer connections</a></li>
+<li><a href="#c-independent-start-gate">C. Independent start gate</a></li>
+<li><a href="#d-circuit-locker">D. Circuit locker</a></li>
+</ul>
+</li>
+<li><a href="#4-install-the-program">4. Install the program</a></li>
+<li><a href="#5-bind-your-instances-item-and-fluid-identities">5. Bind your instance's item and fluid identities</a><ul>
+<li><a href="#item-bindings">Item bindings</a></li>
+<li><a href="#fluid-bindings">Fluid bindings</a></li>
+</ul>
+</li>
+<li><a href="#6-commission-it-before-production">6. Commission it before production</a><ul>
+<li><a href="#test-selected-fluid-transfers">Test selected-fluid transfers</a></li>
+<li><a href="#prove-the-start-gate">Prove the start gate</a></li>
+<li><a href="#live-recipe-and-queue-tests">Live recipe and queue tests</a></li>
+</ul>
+</li>
+<li><a href="#7-recipe-recognition-and-ae2-use">7. Recipe recognition and AE2 use</a></li>
+<li><a href="#8-input-handoff-faults-and-recovery">8. Input handoff, faults, and recovery</a><ul>
+<li><a href="#what-is-and-is-not-acknowledged">What is and is not acknowledged</a></li>
+<li><a href="#normal-stop-and-reboot-recovery">Normal stop and reboot recovery</a></li>
+<li><a href="#fault-checklist">Fault checklist</a></li>
+<li><a href="#manually-abandoning-an-input-transaction">Manually abandoning an input transaction</a></li>
+<li><a href="#persistence-and-power">Persistence and power</a></li>
+<li><a href="#optional-original-managed-output-mode">Optional original managed-output mode</a></li>
+</ul>
+</li>
+<li><a href="#9-complete-33-recipe-reference">9. Complete 33-recipe reference</a><ul>
+<li><a href="#processing-recipes-9">Processing recipes (9)</a></li>
+<li><a href="#flora-conversions-24">Flora conversions (24)</a></li>
+</ul>
+</li>
+<li><a href="#10-files-tests-and-provenance">10. Files, tests, and provenance</a></li>
+</ul>
+</div>
+<h2 id="1-what-you-are-building">1. What you are building</h2>
+<p>There are two layers of input storage:</p>
+<ul>
+<li><strong>Staging:</strong> a chest and separate multi-fluid buffer, supplied manually or by AE2. Together they hold a complete recipe lot, from which the program identifies the recipe.</li>
+<li><strong>Machine inputs:</strong> an ordinary Input Bus and a LuV Quad Input Hatch installed in the multiblock. Only this controller loads them; they hold one exact pending batch.</li>
+</ul>
+<p>A separate circuit locker contains one real circuit programmed to <strong>1</strong> and one programmed to <strong>9</strong>. These are tools, not staged ingredients. Two OC transposers serve the fluid inputs and item/circuit inputs. Your existing ME export arrangement remains responsible for products.</p>
+<p><img alt="Two input transposers, a separate start gate, and native ME exports" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMTAwIDU2MCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InRpdGxlIGRlc2MiPgo8dGl0bGUgaWQ9InRpdGxlIj5EaXNzb2x1dGlvbiBUYW5rIGxvZ2ljYWwgd2lyaW5nPC90aXRsZT4KPGRlc2MgaWQ9ImRlc2MiPlR3byB0cmFuc3Bvc2VycyBzZXJ2ZSBvbmx5IGZsdWlkIGlucHV0cyBhbmQgaXRlbS9jaXJjdWl0IGlucHV0cy4gQSBzZXBhcmF0ZSByZWRzdG9uZSBzaWduYWwgY29udHJvbHMgc3RhcnRzLiBOYXRpdmUgTUUgb3V0cHV0IGhhdGNoIGFuZCBidXMgZXhwb3J0IHByb2R1Y3RzIGRpcmVjdGx5IHdpdGhvdXQgb3V0cHV0IHRyYW5zcG9zZXJzLjwvZGVzYz4KPGRlZnM+PG1hcmtlciBpZD0iYXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wIDBMMTAgNUwwIDEwWiIgZmlsbD0iIzQyNjM3ZCIvPjwvbWFya2VyPjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjExMDAiIGhlaWdodD0iNTYwIiByeD0iMTgiIGZpbGw9IiNmMWY1ZjkiLz4KPHN0eWxlPnRleHR7Zm9udC1mYW1pbHk6U2Vnb2UgVUksQXJpYWwsc2Fucy1zZXJpZjtmaWxsOiMxNzJkNDB9IC5oe2ZvbnQtc2l6ZToyMHB4O2ZvbnQtd2VpZ2h0OjcwMH0uc3tmb250LXNpemU6MTZweH0uYm94e2ZpbGw6d2hpdGU7c3Ryb2tlOiNiOGM5ZDg7c3Ryb2tlLXdpZHRoOjJ9LnRwe2ZpbGw6I2Q4ZWVmMDtzdHJva2U6IzM0ODA4YjtzdHJva2Utd2lkdGg6Mn0ubGluZXtzdHJva2U6IzQyNjM3ZDtzdHJva2Utd2lkdGg6MztmaWxsOm5vbmU7bWFya2VyLWVuZDp1cmwoI2Fycm93KX0uY2FibGV7c3Ryb2tlOiM0NTljOGM7c3Ryb2tlLXdpZHRoOjI7c3Ryb2tlLWRhc2hhcnJheTo3IDU7ZmlsbDpub25lfTwvc3R5bGU+Cjx0ZXh0IHg9IjMwIiB5PSIzNSIgY2xhc3M9ImgiPkxvZ2ljYWwgY29ubmVjdGlvbnMg4oCiIGFycm93cyBzaG93IG1hdGVyaWFsIGZsb3c8L3RleHQ+CjxyZWN0IHg9IjMwIiB5PSI2MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI3NSIgcng9IjEwIiBjbGFzcz0iYm94Ii8+PHRleHQgeD0iNDgiIHk9IjkwIiBjbGFzcz0iaCI+U3RhZ2luZyBmbHVpZCBxdWFkPC90ZXh0Pjx0ZXh0IHg9IjQ4IiB5PSIxMTUiIGNsYXNzPSJzIj5MdVYgcXVhZCDCtyDiiaU5MGsgTCBwZXIgZmx1aWQ8L3RleHQ+CjxyZWN0IHg9IjM5NSIgeT0iNjAiIHdpZHRoPSIyMzUiIGhlaWdodD0iNzUiIHJ4PSIxMCIgY2xhc3M9InRwIi8+PHRleHQgeD0iNDE4IiB5PSI5MCIgY2xhc3M9ImgiPkEgwrcgRmx1aWQtaW5wdXQgVFA8L3RleHQ+PHRleHQgeD0iNDE4IiB5PSIxMTUiIGNsYXNzPSJzIj5NZWFzdXJlZCByZWNpcGUgYW1vdW50czwvdGV4dD4KPHJlY3QgeD0iNzM1IiB5PSI2MCIgd2lkdGg9IjMzNSIgaGVpZ2h0PSI3NSIgcng9IjEwIiBjbGFzcz0iYm94Ii8+PHRleHQgeD0iNzUzIiB5PSI5MCIgY2xhc3M9ImgiPk1hY2hpbmUgTHVWIFF1YWQgSW5wdXQgSGF0Y2g8L3RleHQ+PHRleHQgeD0iNzUzIiB5PSIxMTUiIGNsYXNzPSJzIj4xMjgsMDAwIEwgcGVyIGNvbXBhcnRtZW50PC90ZXh0Pgo8cGF0aCBkPSJNMjkwIDk3SDM5NU02MzAgOTdINzM1IiBjbGFzcz0ibGluZSIvPgo8cmVjdCB4PSIzMCIgeT0iMTc1IiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijc1IiByeD0iMTAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI0OCIgeT0iMjA1IiBjbGFzcz0iaCI+U3RhZ2luZyBpdGVtIGNoZXN0PC90ZXh0Pjx0ZXh0IHg9IjQ4IiB5PSIyMzAiIGNsYXNzPSJzIj5Db25zdW1lZCBpbmdyZWRpZW50cyBvbmx5PC90ZXh0Pgo8cmVjdCB4PSIzOTUiIHk9IjE3NSIgd2lkdGg9IjIzNSIgaGVpZ2h0PSI3NSIgcng9IjEwIiBjbGFzcz0idHAiLz48dGV4dCB4PSI0MTgiIHk9IjIwNSIgY2xhc3M9ImgiPkIgwrcgSXRlbS1pbnB1dCBUUDwvdGV4dD48dGV4dCB4PSI0MTgiIHk9IjIzMCIgY2xhc3M9InMiPkl0ZW1zLCB0aGVuIHJlYWwgY2lyY3VpdDwvdGV4dD4KPHJlY3QgeD0iNzM1IiB5PSIxNzUiIHdpZHRoPSIzMzUiIGhlaWdodD0iNzUiIHJ4PSIxMCIgY2xhc3M9ImJveCIvPjx0ZXh0IHg9Ijc1MyIgeT0iMjA1IiBjbGFzcz0iaCI+TWFjaGluZSBvcmRpbmFyeSBJbnB1dCBCdXM8L3RleHQ+PHRleHQgeD0iNzUzIiB5PSIyMzAiIGNsYXNzPSJzIj5TbG90IDE6IGluZ3JlZGllbnRzIMK3IHNsb3QgMjogY2lyY3VpdDwvdGV4dD4KPHBhdGggZD0iTTI5MCAyMTJIMzk1TTYzMCAyMTJINzM1IiBjbGFzcz0ibGluZSIvPgo8cmVjdCB4PSIzOTUiIHk9IjI4MCIgd2lkdGg9IjIzNSIgaGVpZ2h0PSI2NSIgcng9IjEwIiBjbGFzcz0iYm94Ii8+PHRleHQgeD0iNDEyIiB5PSIzMDYiIGNsYXNzPSJoIj5DaXJjdWl0IGxvY2tlcjwvdGV4dD48dGV4dCB4PSI0MTIiIHk9IjMzMCIgY2xhc3M9InMiPlNsb3QgMTogQzEgwrcgc2xvdCAyOiBDOTwvdGV4dD4KPHBhdGggZD0iTTUxMiAyODBWMjUwIiBjbGFzcz0ibGluZSIgc3R5bGU9Im1hcmtlci1zdGFydDp1cmwoI2Fycm93KSIvPgo8cmVjdCB4PSIzMCIgeT0iMzg1IiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijc1IiByeD0iMTAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI0OCIgeT0iNDE1IiBjbGFzcz0iaCI+TWFjaGluZSBwcm9kdWN0czwvdGV4dD48dGV4dCB4PSI0OCIgeT0iNDQwIiBjbGFzcz0icyI+Rmx1aWRzIGFuZCBpdGVtIGJ5cHJvZHVjdHM8L3RleHQ+CjxyZWN0IHg9IjM5NSIgeT0iMzg1IiB3aWR0aD0iMjM1IiBoZWlnaHQ9Ijc1IiByeD0iMTAiIGNsYXNzPSJib3giLz48dGV4dCB4PSI0MTAiIHk9IjQxNSIgY2xhc3M9ImgiPk1FIE91dHB1dCBIYXRjaC9CdXM8L3RleHQ+PHRleHQgeD0iNDEwIiB5PSI0NDAiIGNsYXNzPSJzIj5OYXRpdmUgZXhwb3J0IMK3IG5vIG91dHB1dCBUUDwvdGV4dD4KPHJlY3QgeD0iNzM1IiB5PSIzODUiIHdpZHRoPSIzMzUiIGhlaWdodD0iNzUiIHJ4PSIxMCIgY2xhc3M9ImJveCIvPjx0ZXh0IHg9Ijc1MyIgeT0iNDE1IiBjbGFzcz0iaCI+WW91ciBNRSBuZXR3b3JrIHN0b3JhZ2U8L3RleHQ+PHRleHQgeD0iNzUzIiB5PSI0NDAiIGNsYXNzPSJzIj5Zb3VyIGV4aXN0aW5nIG91dHB1dCBwYXRoIGhhbmRsZXMgdGhpczwvdGV4dD4KPHBhdGggZD0iTTI5MCA0MjJIMzk1TTYzMCA0MjJINzM1IiBjbGFzcz0ibGluZSIvPgo8dGV4dCB4PSIzNSIgeT0iMzAwIiBjbGFzcz0iaCI+T25lIE9wZW5PUyBjb21wdXRlcjwvdGV4dD48dGV4dCB4PSIzNSIgeT0iMzI2IiBjbGFzcz0icyI+T0MgY2FibGUgbmV0d29yayDihpIgQSBhbmQgQjwvdGV4dD4KPHRleHQgeD0iNzM1IiB5PSIzMDAiIGNsYXNzPSJoIj5JbmRlcGVuZGVudCByZWRzdG9uZSBnYXRlPC90ZXh0Pjx0ZXh0IHg9IjczNSIgeT0iMzI2IiBjbGFzcz0icyI+Q29tcHV0ZXIg4oaSIEVuYWJsZS13aXRoLXNpZ25hbCBjb3ZlcjwvdGV4dD4KPHRleHQgeD0iMzUiIHk9IjUwNSIgY2xhc3M9ImgiPkNvbnRyb2xsZXIgc2NvcGU6IGV4YWN0IGlucHV0IGhhbmRvZmZzIGFuZCBjaXJjdWl0IHJldHVybnM8L3RleHQ+Cjx0ZXh0IHg9IjM1IiB5PSI1MzUiIGNsYXNzPSJzIj5BIGFuZCBCIGFyZSB0aGUgb25seSB0cmFuc3Bvc2Vycy4gTm8gT0Mgb3V0cHV0IGludmVudG9yeSBtb25pdG9yaW5nLiBUaGlzIGlzIG5vdCBhIGNhc2luZyBibHVlcHJpbnQuPC90ZXh0Pgo8L3N2Zz4=" /></p>
+<p>The diagram shows adjacency and ownership, not a casing blueprint. Build the tank with its normal structure hints/projector. Place its Input Hatch and Input Bus so their transposers can touch accessible faces. OC cables connect both transposers to the computer but do not carry materials or extend adjacency.</p>
+<h3 id="the-operating-sequence">The operating sequence</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Action</th>
+<th>Start permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle</td>
+<td>Require empty machine inputs; recognize a complete staged lot</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Fluids</td>
+<td>Move measured amounts; reread actual hatch contents after each transfer</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Items</td>
+<td>Verify exact fluids, then load consumed ingredients</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Circuit</td>
+<td>Move one required circuit from locker to an ordinary bus slot</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Armed</td>
+<td>Verify the entire batch, then allow the machine to accept it</td>
+<td>On</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>Once both fluids and consumed items disappear, remove start permission and return the circuit</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Ready</td>
+<td>Clear that input transaction and prepare another staged lot</td>
+<td>Off until the next exact batch is ready</td>
+</tr>
+</tbody>
+</table></div>
+<p>“Accepted” means the ingredients were consumed at recipe start. It does <strong>not</strong> mean the products have finished. The running recipe already has its outputs and duration recorded, so its bus circuit can return while it processes. A following batch can be loaded with start permission off, then wait fully assembled until the machine is available. The <a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/api/metatileentity/implementations/MTEMultiBlockBase.java">multiblock implementation</a> consumes inputs at the recipe check and records the running work; new starts still depend on its allowed-to-work state.</p>
+<p>No ingredients for a third batch enter the actual machine while a second batch is waiting there. The program waits for the pending batch's consumption before reusing its input inventories. The <a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gtnhlanth/common/tileentity/MTEDissolutionTank.java">tank's ratio check</a> runs when a recipe starts, which is why exact quantities and the independent start gate matter.</p>
+<h2 id="2-parts-and-capacities">2. Parts and capacities</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align: right;">Quantity</th>
+<th>Part</th>
+<th>Requirement / reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Complete Dissolution Tank</td>
+<td>Correct structure, maintenance, and power</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>IV-capable energy supply and suitable energy hatch</td>
+<td>Highest base recipe demand is 7,680 EU/t; account for actual voltage/amperage and overclocking</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td><strong>LuV Quad Input Hatch</strong> in the machine</td>
+<td>Four 128,000 L compartments; largest single input is 90,000 L</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Separate LuV Quad or equivalent staging tank</td>
+<td>At least two independently readable/selectable compartments, large enough for the staged lot</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Ordinary LV Input Bus or larger</td>
+<td>At least two accessible ordinary slots: consumed slot 1, circuit slot 2</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>OC transposers</td>
+<td>One fluid input, one item/circuit input</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>OpenOS computer with redstone card</td>
+<td>Sufficient CPU component budget, RAM, HDD, OC power, GPU/screen and keyboard for your setup</td>
+</tr>
+<tr>
+<td style="text-align: right;">As needed</td>
+<td>OC cables</td>
+<td>Connect both transposers and computer</td>
+</tr>
+<tr>
+<td style="text-align: right;">1 each</td>
+<td>Staging chest and circuit-locker chest</td>
+<td>Ordinary inspectable inventories</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Machine Controller cover and redstone connection</td>
+<td><strong>Enable with signal</strong></td>
+</tr>
+<tr>
+<td style="text-align: right;">1 each</td>
+<td>Real integrated circuits 1 and 9</td>
+<td>Exactly one in each reserved locker slot</td>
+</tr>
+<tr>
+<td style="text-align: right;">Your normal setup</td>
+<td>ME fluid Output Hatch and item Output Bus/export path</td>
+<td>Products export independently; keep ME connected and supplied with storage</td>
+</tr>
+<tr>
+<td style="text-align: right;">Optional</td>
+<td>Chunk loading</td>
+<td>Load computer, machine, staging, and ME export components together</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>An IV Quad Input Hatch is too small for all recipes:</strong> it has 64,000 L per compartment. A LuV Quad has 128,000 L per compartment. Do not confuse an ordinary hatch's capacity with the per-compartment capacity of a quad. See the <a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/api/metatileentity/implementations/MTEHatchMultiInput.java">multi-input hatch implementation</a>.</p>
+<p>An unattached quad can serve as the staging reservoir in the checked implementation. Verify filling and extraction on the faces you use, including reverse extraction for the probe. Another multi-tank inventory is suitable if OC can inspect and select each source compartment. A pipe network is a poor staging store because its visible contents can change with flow.</p>
+<p>The supplied input driver expects <strong>one machine fluid input block exposing at least two compartments</strong>. Two separate ordinary input hatches require a different driver.</p>
+<h3 id="native-output-setup">Native output setup</h3>
+<p>Connect the machine's fluid ME Output Hatch to your ME network. Use an ME Output Bus or your usual automatic item output path for byproducts. No OC transposer needs to touch either output. Chance-based byproducts may be absent; the feeder does not wait for them.</p>
+<p>The largest guaranteed fluid product is <strong>99,000 L</strong>. Ensure the native output path and storage can accept it, and enable the machine's item/fluid void protection. Verify behavior with the ME network disconnected or full during commissioning. The feeder does not inspect output capacity, connectivity, buffers, or successful delivery. Native output buffering may allow a batch to start even while ME is unavailable; input consumption is not a delivery receipt.</p>
+<p>There is no requirement for an ordinary 99,000 L machine output hatch in this default mode. That was needed by the optional output-measuring arrangement. Your ME hatch handles its own buffering/export behavior.</p>
+<h2 id="3-build-and-wire-it">3. Build and wire it</h2>
+<h3 id="a-machine-settings">A. Machine settings</h3>
+<ol>
+<li>Build and maintain the tank with its normal structure. Install its ME outputs and connect them normally.</li>
+<li>Disable batch mode, input separation, and recipe locking for this dynamically changing single-input-batch design. Enable item/fluid void protection.</li>
+<li>Clear the controller's internal circuit setting and the Input Bus's dedicated circuit setting/ghost slot.</li>
+<li>Empty every ordinary input slot and all machine input-fluid compartments. Outputs may be handled by their normal export path.</li>
+<li>Disable bus sorting. Reserve <strong>ordinary Input Bus slot 1</strong> for consumed ingredients and <strong>ordinary slot 2</strong> for the real circuit. Leave all other bus slots empty.</li>
+<li>Disconnect other automated feeds from the actual machine inputs. AE2 delivers ingredients to staging only. Its native output connections stay in place.</li>
+</ol>
+<p>The dedicated circuit slot blocks normal automated insertion/extraction in the <a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/api/metatileentity/implementations/MTEHatchInputBus.java">Input Bus implementation</a>. This design uses a real item in an <strong>ordinary</strong> slot instead. On a normal LV bus the virtual/dedicated slot follows four ordinary slots and may appear as OC slot 5. Inspect the GUI as well as <code>scan</code>; a virtual setting may not behave like a normal stack.</p>
+<h3 id="b-two-transposer-connections">B. Two transposer connections</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Config role</th>
+<th>Adjacent endpoints</th>
+<th>Example directions from that transposer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inputFluids</code></td>
+<td>Staging fluid quad; actual machine Quad Input Hatch</td>
+<td>Stage above; machine north</td>
+</tr>
+<tr>
+<td><code>inputItems</code></td>
+<td>Staging chest; actual Input Bus; circuit-locker chest</td>
+<td>Stage above; bus north; locker west</td>
+</tr>
+</tbody>
+</table></div>
+<p>Change these example directions to your physical build. They are absolute world directions <strong>from each transposer</strong>: <code>north</code>, <code>south</code>, <code>east</code>, <code>west</code>, <code>up</code>, <code>down</code>. Point hatch/bus access faces toward the transposers and configure covers to permit the required transfers.</p>
+<h3 id="c-independent-start-gate">C. Independent start gate</h3>
+<p>Install a Machine Controller cover and select <strong>Enable with signal</strong>. Run a separate redstone connection from the computer's redstone output to that cover. The redstone side in config is measured from the computer case, not a transposer.</p>
+<p>Signal 15 must permit new recipes, and signal 0 must prevent them. A batch already processing is allowed to finish while permission is off. Prove the polarity in the GUI before production. Start with the cover's ordinary enable mode. If you choose its optional safe mode, account for its critical-failure latch and manual reset behavior; see the <a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/common/covers/CoverControlsWork.java">cover implementation</a>.</p>
+<h3 id="d-circuit-locker">D. Circuit locker</h3>
+<p>Put exactly <strong>one circuit programmed to 1 in locker slot 1</strong> and <strong>one circuit programmed to 9 in locker slot 2</strong>. Reserve those slots. The program never manufactures, reprograms, or consumes the circuits.</p>
+<p>For a circuit recipe it moves the required circuit to ordinary bus slot 2 after fluids and consumed items are correct. Once the consumed ingredients disappear, the circuit returns immediately to its home slot; it does not wait for processing or ME delivery. Circuit-free recipes leave both circuits home. A following recipe can reuse a returned circuit while the previous recipe is still running.</p>
+<h2 id="4-install-the-program">4. Install the program</h2>
+<p>Extract the package on your PC. Copy these <strong>five files together</strong> into an OpenOS directory such as <code>/home/dissolution</code>:</p>
+<pre><code>dt.lua
+dt_core.lua
+dt_io.lua
+recipes.lua
+config.lua
+</code></pre>
+<p>Use your usual OC file transfer method: an in-game editor with clipboard access, your own hosted downloads, or administrator access to a directory-backed OC disk while the server is stopped. HDD storage formats vary; do not edit raw disk/NBT data assuming it is a normal folder. Copying these files to the Minecraft client's mods folder does not install them on a multiplayer server's OC computer.</p>
+<p>In OpenOS:</p>
+<pre><code class="language-sh">cd /home/dissolution
+lua dt.lua help
+lua dt.lua components
+edit config.lua
+</code></pre>
+<p>Replace the two transposer addresses and redstone address with their full component UUIDs. Identify which is which by physical labeling and component inspection; the listing does not know your plumbing roles. Set all directions and locker/bus slots to match your build.</p>
+<p>Keep these defaults initially:</p>
+<pre><code class="language-lua">outputMode='external',
+consumedSlot=1, circuitSlot=2,
+circuitLockerSlots={[1]=1,[9]=2},
+maxEUt=7680,
+preferCircuit=9,
+onlyRecipe=nil,
+sourceTankBase=0,
+fluidChunk=1000, itemChunk=64,
+pollSeconds=0.25, jobTimeoutSeconds=1800,
+commissioningPassed=false
+</code></pre>
+<p><code>maxEUt</code> is a catalog filter and a declared capability, not a reading from the energy hatch. It cannot prove that you have power, maintenance, correct voltage, or enough amperage. All-33 startup checks require it to be at least 7,680.</p>
+<p><code>fluidChunk</code> is a maximum request, not an assumed delivered amount. A transposer may deliver less, or nothing. The next step rereads the real hatch. OC transfer limits and server settings affect speed; increase the job timeout if legitimate loading plus processing takes longer than 30 minutes. Larger requests do not bypass the OC transfer rate.</p>
+<p>With <code>outputMode='external'</code>, no <code>outputFluids</code> or <code>outputItems</code> entry is required. The default config comments out the old optional entries. Missing output hardware is expected in this mode.</p>
+<p>If updating an earlier copy, finish or manually reconcile its old transaction before replacing files or changing modes. Keep an unfinished job's exact original configuration, bindings, and catalog for recovery; do not change its mode mid-job.</p>
+<h2 id="5-bind-your-instances-item-and-fluid-identities">5. Bind your instance's item and fluid identities</h2>
+<p>The catalog uses symbolic material names. Binding learns your instance's actual registry names and item metadata instead of guessing mod IDs. These commands inspect samples and do not consume them. Normal inspection commands set the start signal off; run them only while the controller loop is stopped.</p>
+<pre><code class="language-sh">lua dt.lua scan
+</code></pre>
+<p>The scan must show the configured <strong>input/staging/locker</strong> inventories and each input tank compartment with a capacity and contents. Stop here if an endpoint is missing, inspection is disabled, or a direction is wrong. The program rejects tagged items whose NBT is hidden rather than treating different tagged stacks as the same ingredient. Use clean representative samples where possible.</p>
+<h3 id="item-bindings">Item bindings</h3>
+<p>Place a sample in <strong>staging chest slot 1</strong>, run the corresponding command, then remove it before sampling another material. The slot number can be changed if needed.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Sample to use</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>saltpeter</code></td>
+<td>Saltpeter dust used in the tank recipe</td>
+<td><code>lua dt.lua bind-item saltpeter 1</code></td>
+</tr>
+<tr>
+<td><code>prismarine_shard</code></td>
+<td>Correct Prismarine Shard from NEI</td>
+<td><code>lua dt.lua bind-item prismarine_shard 1</code></td>
+</tr>
+<tr>
+<td><code>flower</code></td>
+<td>Any Botania <strong>Glimmering Flower</strong></td>
+<td><code>lua dt.lua bind-item flower 1</code></td>
+</tr>
+<tr>
+<td><code>virus</code></td>
+<td>Botania virus item, metadata 0</td>
+<td><code>lua dt.lua bind-item virus 1</code></td>
+</tr>
+<tr>
+<td><code>witchery_ingredient</code></td>
+<td>Witchery ingredient base item; a listed variant is best</td>
+<td><code>lua dt.lua bind-item witchery_ingredient 1</code></td>
+</tr>
+<tr>
+<td><code>golden_oak</code></td>
+<td>ThaumicBases goldenOakSapling base item, variant 2 or 3</td>
+<td><code>lua dt.lua bind-item golden_oak 1</code></td>
+</tr>
+<tr>
+<td><code>rainbow_cactus</code></td>
+<td>ThaumicBases rainbowCactus, metadata 0</td>
+<td><code>lua dt.lua bind-item rainbow_cactus 1</code></td>
+</tr>
+<tr>
+<td><code>rose_vine</code></td>
+<td>WitchingGadgets WG_RoseVine, metadata 0</td>
+<td><code>lua dt.lua bind-item rose_vine 1</code></td>
+</tr>
+<tr>
+<td><code>circuit</code></td>
+<td>Both real circuits in their assigned locker slots</td>
+<td><code>lua dt.lua bind-circuits</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The catalog supplies the required metadata for flora variants and circuit programs. One glimmering-flower sample binds the base item for all 16 colors. <strong>Ordinary mystical flowers or mushrooms are different base items and are not substitutes.</strong> The same rule lets one correct Witchery ingredient base item cover its three listed metadata variants.</p>
+<h3 id="fluid-bindings">Fluid bindings</h3>
+<p>Put a small amount of the named fluid into the staging quad, scan to find its compartment, and bind it. The example uses readable compartment <strong>1</strong>. Use the actual compartment number shown by <code>scan</code>. Remove each sample afterward; sample leftovers otherwise become extra staged ingredients.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Actual material</th>
+<th>Command, assuming sample in compartment 1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>water</code></td>
+<td>Water</td>
+<td><code>lua dt.lua bind-fluid water 1</code></td>
+</tr>
+<tr>
+<td><code>monazite_muddy</code></td>
+<td>Muddy Rare Earth Monazite Solution</td>
+<td><code>lua dt.lua bind-fluid monazite_muddy 1</code></td>
+</tr>
+<tr>
+<td><code>bastnasite_conditioned</code></td>
+<td>Conditioned Bastnasite Mud</td>
+<td><code>lua dt.lua bind-fluid bastnasite_conditioned 1</code></td>
+</tr>
+<tr>
+<td><code>nitric_acid</code></td>
+<td>Nitric Acid</td>
+<td><code>lua dt.lua bind-fluid nitric_acid 1</code></td>
+</tr>
+<tr>
+<td><code>samarium_muddy</code></td>
+<td>Muddy Samarium Rare Earth Solution</td>
+<td><code>lua dt.lua bind-fluid samarium_muddy 1</code></td>
+</tr>
+<tr>
+<td><code>samarium_mud</code></td>
+<td>Samarium Rare Earth Mud</td>
+<td><code>lua dt.lua bind-fluid samarium_mud 1</code></td>
+</tr>
+<tr>
+<td><code>industrial_hf</code></td>
+<td><strong>Industrial Strength Hydrofluoric Acid</strong></td>
+<td><code>lua dt.lua bind-fluid industrial_hf 1</code></td>
+</tr>
+<tr>
+<td><code>hydrogen_peroxide</code></td>
+<td>Hydrogen Peroxide</td>
+<td><code>lua dt.lua bind-fluid hydrogen_peroxide 1</code></td>
+</tr>
+<tr>
+<td><code>prismarine_peroxide</code></td>
+<td>Prismarine-Contaminated Hydrogen Peroxide</td>
+<td><code>lua dt.lua bind-fluid prismarine_peroxide 1</code></td>
+</tr>
+<tr>
+<td><code>purifying_fluid</code></td>
+<td>Fluid with source registry name <code>fluidpure</code>; verify its NEI recipe</td>
+<td><code>lua dt.lua bind-fluid purifying_fluid 1</code></td>
+</tr>
+<tr>
+<td><code>liquid_death</code></td>
+<td>Liquid Death, source registry name <code>fluiddeath</code></td>
+<td><code>lua dt.lua bind-fluid liquid_death 1</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Standard/diluted HF must not be bound as industrial-strength HF. Two distinct aliases in the same recipe must not resolve to the same actual fluid. Labels are for people; matching uses the registry identity learned from the sample.</p>
+<p>Once all samples are removed and both circuits are home:</p>
+<pre><code class="language-sh">lua dt.lua check
+</code></pre>
+<p>The result must report <strong>33 / 33</strong> recipes with all material bindings. This checks machine input-fluid capacities and both circuits too. It does not inspect outputs in external mode. It does not prove your recipe versions, cover polarity, live transfer access, or power. Back up the resulting <code>bindings.dat</code> and your configured <code>config.lua</code>.</p>
+<h2 id="6-commission-it-before-production">6. Commission it before production</h2>
+<h3 id="test-selected-fluid-transfers">Test selected-fluid transfers</h3>
+<p>The selected-tank argument needs special attention. The checked GTNH <a href="https://github.com/GTNewHorizons/OpenComputers/blob/master/src/main/scala/li/cil/oc/server/component/traits/InventoryTransfer.scala">transfer implementation</a> passes the source tank argument into <a href="https://github.com/GTNewHorizons/OpenComputers/blob/master/src/main/scala/li/cil/oc/util/FluidUtils.scala">FluidUtils</a> as a raw <strong>zero-based</strong> index. The readable <code>getFluidInTank</code> result is a <strong>one-based Lua array</strong>. Other forks/documentation may differ. The supplied driver handles that distinction with <code>sourceTankBase=0</code>.</p>
+<ol>
+<li>Keep <code>commissioningPassed=false</code>, the machine start signal off, all machine item slots empty, and the machine fluid input empty. Do not load production items during this test.</li>
+<li>Stage two <strong>different</strong> fluids in two known compartments. At least one should be in a compartment after the first. Use <code>scan</code> to identify their readable compartment numbers.</li>
+<li>If the second readable compartment contains the intended sample, run:</li>
+</ol>
+<p><code>sh
+   lua dt.lua probe 2</code></p>
+<ol>
+<li>The command must transfer exactly <strong>1 L of the selected fluid</strong> into the machine and return it, leaving the machine input empty. Verify the printed identity and scan both blocks. Repeat with another occupied nonfirst compartment if practical.</li>
+<li>If it moves nothing, inspect faces, covers, and extraction permission first. If it moves the wrong fluid, keep the machine isolated, remove the probe fluid from the machine, and determine your installed API's index convention. Use <code>sourceTankBase=1</code> only if that convention is confirmed; repeat the test successfully afterward.</li>
+</ol>
+<p>The probe stops on a wrong fluid rather than continuing production. A failed probe may leave its test unit inside the machine. Remove that unit and check the machine is empty before trying again. Do not solve this by adding ingredients or bypassing the gate.</p>
+<p>The transposer cannot choose a destination compartment. The quad hatch accepts matching fluid into its matching compartment or uses a free compartment. The controller identifies compartments from their contents, checks totals, and refuses unexpected/excess fluid. It does not assume the two recipe fluids always occupy physical slots 1 and 2.</p>
+<h3 id="prove-the-start-gate">Prove the start gate</h3>
+<p>With the program stopped and no production inputs present, test the redstone line using the OC Lua interpreter or another controlled source. Confirm low signal prevents new starts and high permits them. Return it low. A lit wire alone is insufficient; cover mode, face, and polarity matter.</p>
+<h3 id="live-recipe-and-queue-tests">Live recipe and queue tests</h3>
+<ol>
+<li>Inspect an idle machine with empty inputs. Run <code>scan</code>, <code>check</code>, and the successful fluid probe. Remove sample items/fluids from staging. <code>check</code> must show <strong>33 / 33</strong> and output mode <strong>external</strong>.</li>
+<li>Compare <code>prismarine_fresh</code> against NEI. Stage <strong>24 Prismarine Shards + 4,000 L Industrial Strength HF + 4,000 L Hydrogen Peroxide</strong>. Run <code>lua dt.lua plan</code>; it must identify one fresh batch without moving anything.</li>
+<li>After the wiring/binding checks, set <code>commissioningPassed=true</code> in <code>config.lua</code>. Run <code>lua dt.lua run</code>. Watch exact fluids arrive first, then items, then start permission. Once the tank consumes the batch, the feeder reports an accepted input batch. It need not wait for products to appear.</li>
+<li>Independently watch the machine finish and confirm <strong>8,000 L Prismarine Solution</strong> and the item byproduct reach ME through your native outputs. A feeder “accepted” message is not proof of that delivery.</li>
+<li>Stop the waiting loop with Ctrl+C and test <code>monazite_1</code>. Confirm circuit 1 leaves locker slot 1, goes to ordinary bus slot 2, and returns after ingredient consumption—even if the tank is still processing.</li>
+<li>Test circuit 9, then <code>monazite_9</code> with its maximum <strong>90,000 L + 9,000 L input / 99,000 L fluid output</strong>. Confirm your input capacity and native output path handle it.</li>
+<li>Test a samarium circuit-only recipe: empty staging chest plus its two fluids must wait for the program to insert the circuit before starting. Test one fast flora conversion as well.</li>
+<li>While a long recipe is active, stage a second complete recipe. Watch it load with permission off, reach exact amounts, then wait armed with its required circuit. It must remain in the machine inputs until the running recipe finishes and the next one starts. No partial fluid load should be allowed to start.</li>
+<li>Test a controlled interruption during input loading and recover with <code>resume</code>. Test an interruption after input consumption; the circuit should still return exactly once. In both cases independently verify the actual product, because external mode does not supervise production.</li>
+<li>Test your native export behavior with ME full/offline, using a recoverable setup. Confirm void protection/buffering work as expected and understand how you restore export. The feeder must not be used to diagnose or certify ME delivery.</li>
+<li>Commission one of each remaining recipe against the reference below before claiming all 33 are proven on your server. Then set <code>onlyRecipe=nil</code> with no unfinished job and test alternating circuit-1, circuit-9, and circuit-free recipes.</li>
+</ol>
+<p>Set <code>onlyRecipe</code> to a particular recipe ID when removing ambiguity for a test. Edit configuration only when there is no unfinished input transaction. Simulation covers logic and mocked I/O; it cannot validate your physical hatches, actual covers, server settings, or installed recipe changes.</p>
+<h2 id="7-recipe-recognition-and-ae2-use">7. Recipe recognition and AE2 use</h2>
+<p>The staging chest and fluid buffer together must contain exactly one recipe's ingredients multiplied by the same whole-number batch count. The program rejects mixed recipes, wrong quantities, unrelated items, and partially delivered lots. It waits without loading the machine until the complete lot matches. The locker is not part of that ingredient comparison.</p>
+<p>Examples:</p>
+<ul>
+<li><strong>24 shards + 4,000 L HF + 4,000 L peroxide:</strong> one fresh-prismarine batch.</li>
+<li><strong>48 shards + 8,000 L HF + 8,000 L peroxide:</strong> two fresh batches; loaded and completed separately.</li>
+<li><strong>24 shards + 4,000 L HF + 3,999 L peroxide:</strong> incomplete; nothing loads.</li>
+<li><strong>24 shards + correct fluids + one spare cobblestone:</strong> no match; nothing loads.</li>
+<li><strong>1,000 L nitric acid + 1,000 L muddy samarium solution, empty staging chest:</strong> valid circuit-1 leaching recipe. The program supplies the circuit.</li>
+</ul>
+<p>The circuit-1 and circuit-9 variants share proportional ingredients. Nine small monazite batches have the same staged amounts as one circuit-9 batch. The default <code>preferCircuit=9</code> chooses the large variant when both match. To demand the small variant, set <code>onlyRecipe='monazite_1'</code>, or configure the preference appropriately. This is a policy choice; ingredient quantities alone cannot express which of those two you intended.</p>
+<p>For AE2, make processing patterns whose destinations are the <strong>staging buffers</strong>. Include consumed ingredients and exact fluids; omit the reusable circuit from the pattern. The program chooses its circuit. Use an appropriate fluid-capable pattern/provider arrangement for your pack, with blocking or equivalent queue isolation, so different recipes do not mix in staging. Verify exact delivered liters with <code>scan</code> before unattended crafting.</p>
+<p>Configure expected products from NEI. Chance-based samarium byproducts should not be required as guaranteed returns. The controller does not create AE2 patterns, issue crafting requests, or report probabilistic outputs as guaranteed.</p>
+<p>After one batch is accepted, the feeder can take the next complete staged lot while the current recipe processes. It fills the actual inputs with exactly one pending batch and waits for its consumption. It does not add further lots to those occupied inputs. Keep different recipes isolated in staging; leftover unrelated fluids prevent a match.</p>
+<p>AE2 still observes the actual products through your normal ME output path. The feeder does not generate a false craft-complete acknowledgement when inputs are consumed.</p>
+<h2 id="8-input-handoff-faults-and-recovery">8. Input handoff, faults, and recovery</h2>
+<h3 id="what-is-and-is-not-acknowledged">What is and is not acknowledged</h3>
+<p>An input transaction finishes when both required fluids and consumed items have disappeared from the actual machine inputs and the reusable circuit is back home. With exclusive ownership of those inputs, this indicates recipe acceptance. Outputs can leave immediately through ME; the program never needs to see them or read an output quantity.</p>
+<p>The machine may still be running after its input transaction is erased. If it later loses power, fails, or cannot export, this feeder does not detect finished-product loss or retry the consumed recipe. Use the machine GUI and AE2 crafting status to diagnose production/export. Do not automatically repeat a consumed recipe assuming the output was lost.</p>
+<h3 id="normal-stop-and-reboot-recovery">Normal stop and reboot recovery</h3>
+<p>Ctrl+C stops the loop, attempts to lower the start signal, and retains any unfinished <strong>input</strong> transaction. A running recipe is not cancelled by removing start permission. The journal records the input recipe and phase before transfers; recovery compares actual input contents rather than assuming a previous transfer succeeded.</p>
+<p>After an interrupted input job:</p>
+<ol>
+<li>Inspect machine progress, input contents, circuit locations, and native export status. Stop other feeds touching the actual inputs.</li>
+<li>Keep the same <code>config.lua</code>, <code>bindings.dat</code>, and <code>recipes.lua</code> used for the job. <code>resume</code> rejects a changed signature. Restore originals if edited mid-job.</li>
+<li>If a stale process lock exists, confirm no other controller process is running, then use <code>lua dt.lua unlock</code>. This removes only the process lock.</li>
+<li>Use <code>lua dt.lua resume</code>. If the machine already consumed the job's inputs, it returns the surviving circuit instead of loading the job again. If inputs are still being loaded or waiting, it reconciles them and continues. Watch the recovery.</li>
+</ol>
+<p><code>run</code> refuses an existing journal; <code>resume</code> requires one. If a job was already accepted and its input transaction cleared, no journal for its ongoing production is expected. After inspecting that state, <code>run</code> can prepare another batch while the machine works. It cannot recover or certify the previous batch's products.</p>
+<p>The lock prevents ordinary accidental double starts, not multiple independent computers. Use one controller with exclusive ownership of the machine's inputs.</p>
+<h3 id="fault-checklist">Fault checklist</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Check / action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Waiting for a complete recipe</td>
+<td>Partial delivery, wrong amounts/base items, missing bindings, sample residue, or mixed staged lots</td>
+</tr>
+<tr>
+<td>Ambiguous recipes</td>
+<td>Choose <code>preferCircuit</code> or <code>onlyRecipe</code>; do not put a spare circuit in staging</td>
+</tr>
+<tr>
+<td>Cannot inspect inputs</td>
+<td>Component UUIDs, directions, access faces/covers, OC inspection settings</td>
+</tr>
+<tr>
+<td>Fluid loading stalls</td>
+<td>Source quantity, extraction permission, input capacity, successful index probe, OC power</td>
+</tr>
+<tr>
+<td>Unexpected/excess input fluid</td>
+<td>Find residue, another feed, wrong binding, or tank-index mismatch before continuing</td>
+</tr>
+<tr>
+<td>Bus/circuit slot error</td>
+<td>Sorting, other inserters, occupied ordinary slot, virtual circuit settings, incorrect slot numbers</td>
+</tr>
+<tr>
+<td>Missing circuit / occupied home slot</td>
+<td>Locate the real circuit and restore reserved slots without duplicating it</td>
+</tr>
+<tr>
+<td>Armed with exact inputs, not consumed</td>
+<td>Machine may still be busy; otherwise check power, maintenance, structure, redstone polarity, NEI recipe and output protection</td>
+</tr>
+<tr>
+<td>Feeder accepted, but no product in ME</td>
+<td>Inspect the running machine and native output hatch/bus/network; the feeder does not monitor them</td>
+</tr>
+<tr>
+<td>Signature changed</td>
+<td>Restore the original config/bindings/catalog for that unfinished input job</td>
+</tr>
+<tr>
+<td>Input transaction timeout</td>
+<td>Inspect the machine and queued inputs; journal remains. Fix the cause, then <code>resume</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>No fault path intentionally flushes, voids, or reloads a questionable batch. The default 30-minute timeout covers loading and waiting for input acceptance; it may include time spent waiting for a previous recipe. It does not time the completed production/export of a batch whose inputs were already accepted. Resuming starts a new timeout window. Waiting for a staged recipe can wait indefinitely.</p>
+<h3 id="manually-abandoning-an-input-transaction">Manually abandoning an input transaction</h3>
+<ol>
+<li>Visually confirm the machine is <strong>idle</strong>. Empty inputs alone do not prove that: a running recipe has already consumed them.</li>
+<li>Recover or reconcile all pending ingredients and empty the actual machine inputs.</li>
+<li>Restore both real circuits to their assigned locker slots.</li>
+<li>Use <code>lua dt.lua clear CONFIRM_EMPTY</code>.</li>
+</ol>
+<p>In external mode this checks <strong>input emptiness and circuits</strong>, not output inventories or ME delivery. It cannot independently prove the machine is idle. Leave normally exported products in your ordinary output path. If the journal is missing/corrupt, reconcile any running or queued work before a reset; do not blindly load a replacement for a recipe that may already have started.</p>
+<h3 id="persistence-and-power">Persistence and power</h3>
+<p>The program attempts to lower the start signal on startup and controlled exits. A sudden power loss can retain a redstone state. Exact pending-input isolation limits what can start, but software is not a guaranteed electrical cutoff. Keep the computer, machine, and ME network reliably powered and loaded.</p>
+<p>Persistent files beside the scripts are <code>bindings.dat</code>, <code>transaction.dat</code> with backups, and <code>controller.lock</code>. Keep the HDD intact and back up configured files while idle. The journal records input handoffs; world backups and physical inspection remain necessary after corruption.</p>
+<h3 id="optional-original-managed-output-mode">Optional original managed-output mode</h3>
+<p>The old four-transposer arrangement remains available for a standalone machine without native export. Set <code>outputMode='managed'</code> and supply <code>outputFluids</code> and <code>outputItems</code> component tables as shown in the comments in <code>config.lua</code>. Each table specifies <code>address</code>, <code>machineSide</code>, and <code>storeSide</code>.</p>
+<p>That mode requires one ordinary machine Output Hatch holding <strong>at least 99,000 L</strong> (ordinary EV holds 128,000 L), an adequate Output Bus, and the two extra transposers to drain them into external product storage. Only the controller may empty the actual outputs. It waits for the entire expected fluid product, drains fluid/items, then returns the circuit. Mixing immediate ME extraction with that completion method will cause it to miss the product and wait.</p>
+<p>For your normal ME output setup, keep <strong><code>outputMode='external'</code></strong> and omit both output component tables. Never switch modes during an unfinished transaction.</p>
+<h2 id="9-complete-33-recipe-reference">9. Complete 33-recipe reference</h2>
+<p>All fluid quantities are <strong>liters per base recipe</strong>. Times are base durations at 20 ticks/second, before overclocking. EU/t is the recipe's base demand. “Circuit —” means no circuit. Ingredients listed here are consumed; circuits are not.</p>
+<p>The symbolic fluid names below are exactly the aliases used by the binding table. Variant metadata is intentional. For untranslated flora names, the source registry item/metadata is given instead of guessing an English label. Match them against NEI.</p>
+<h3 id="processing-recipes-9">Processing recipes (9)</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Recipe ID / operation</th>
+<th>Consumed items</th>
+<th>Input fluids (L)</th>
+<th style="text-align: right;">Circuit</th>
+<th>Guaranteed fluid product</th>
+<th>Base time / EU/t</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>monazite_1</code><br>Monazite dilution, circuit 1</td>
+<td>1 × saltpeter</td>
+<td>10,000 water<br>1,000 monazite_muddy</td>
+<td style="text-align: right;">1</td>
+<td>11,000 L Diluted Rare Earth Monazite Mud</td>
+<td>45 s / 480</td>
+</tr>
+<tr>
+<td><code>monazite_9</code><br>Monazite dilution, circuit 9</td>
+<td>9 × saltpeter</td>
+<td>90,000 water<br>9,000 monazite_muddy</td>
+<td style="text-align: right;">9</td>
+<td>99,000 L Diluted Rare Earth Monazite Mud</td>
+<td>405 s / 480</td>
+</tr>
+<tr>
+<td><code>bastnasite</code><br>Bastnasite dilution</td>
+<td>1 × saltpeter</td>
+<td>10,000 water<br>1,000 bastnasite_conditioned</td>
+<td style="text-align: right;">—</td>
+<td>11,000 L Diluted Rare Earth Bastnasite Mud</td>
+<td>50 s / 1,920</td>
+</tr>
+<tr>
+<td><code>samarium_leach_1</code><br>Samarium leaching, circuit 1</td>
+<td>None</td>
+<td>1,000 nitric_acid<br>1,000 samarium_muddy</td>
+<td style="text-align: right;">1</td>
+<td>2,000 L Samarium Rare Earth Mud</td>
+<td>10 s / 1,920</td>
+</tr>
+<tr>
+<td><code>samarium_leach_9</code><br>Samarium leaching, circuit 9</td>
+<td>None</td>
+<td>9,000 nitric_acid<br>9,000 samarium_muddy</td>
+<td style="text-align: right;">9</td>
+<td>18,000 L Samarium Rare Earth Mud</td>
+<td>15 s / 7,680</td>
+</tr>
+<tr>
+<td><code>samarium_dilute_1</code><br>Samarium dilution, circuit 1</td>
+<td>None</td>
+<td>9,000 water<br>1,000 samarium_mud</td>
+<td style="text-align: right;">1</td>
+<td>10,000 L Diluted Samarium Rare Earth Solution</td>
+<td>30 s / 1,920</td>
+</tr>
+<tr>
+<td><code>samarium_dilute_9</code><br>Samarium dilution, circuit 9</td>
+<td>None</td>
+<td>81,000 water<br>9,000 samarium_mud</td>
+<td style="text-align: right;">9</td>
+<td>90,000 L Diluted Samarium Rare Earth Solution</td>
+<td>45 s / 7,680</td>
+</tr>
+<tr>
+<td><code>prismarine_fresh</code><br>Prismarine fresh leaching</td>
+<td>24 × prismarine_shard</td>
+<td>4,000 industrial_hf<br>4,000 hydrogen_peroxide</td>
+<td style="text-align: right;">—</td>
+<td>8,000 L Prismarine Solution</td>
+<td>20 s / 7,680</td>
+</tr>
+<tr>
+<td><code>prismarine_recycle</code><br>Prismarine recycled leaching</td>
+<td>6 × prismarine_shard</td>
+<td>6,000 prismarine_peroxide<br>2,000 hydrogen_peroxide</td>
+<td style="text-align: right;">—</td>
+<td>8,000 L Prismarine Solution</td>
+<td>20 s / 7,680</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="processing-item-byproducts">Processing item byproducts</h4>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Recipe ID</th>
+<th>Byproducts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>monazite_1</code></td>
+<td>Also 4 tiny Hafnia-Zirconia Blend, 1 Thorianite dust, 2 tiny Monazite.</td>
+</tr>
+<tr>
+<td><code>monazite_9</code></td>
+<td>Also 4 Hafnia-Zirconia Blend dust, 9 Thorianite dust, 2 Monazite dust.</td>
+</tr>
+<tr>
+<td><code>bastnasite</code></td>
+<td>Also 1 Gangue dust.</td>
+</tr>
+<tr>
+<td><code>samarium_leach_1</code></td>
+<td>80%: 1 Cerium Dioxide dust; 60%: 1 Cerium Ore Concentrate dust.</td>
+</tr>
+<tr>
+<td><code>samarium_leach_9</code></td>
+<td>80%: 9 Cerium Dioxide dust; 60%: 9 Cerium Ore Concentrate dust.</td>
+</tr>
+<tr>
+<td><code>samarium_dilute_1</code></td>
+<td>90% and 60% rolls, each for 1 Neodymic Rare Earth Concentrate dust.</td>
+</tr>
+<tr>
+<td><code>samarium_dilute_9</code></td>
+<td>90% and 60% rolls, each for 9 Neodymic Rare Earth Concentrate dust.</td>
+</tr>
+<tr>
+<td><code>prismarine_fresh</code></td>
+<td>Also 4 Certus Quartz dust.</td>
+</tr>
+<tr>
+<td><code>prismarine_recycle</code></td>
+<td>Also 1 Nether Quartz dust.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="flora-conversions-24">Flora conversions (24)</h3>
+<p>All flora recipes are circuit-free and produce McGuffium239 plus the listed Biomes O’ Plenty item. All 16 glimmering flower colors are separate catalog entries.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Recipe ID / ingredient identity</th>
+<th>Consumed items</th>
+<th>Input fluids (L)</th>
+<th style="text-align: right;">McGuffium239</th>
+<th>Base time / EU/t</th>
+<th>BOP item output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>flora_flower_1</code><br>Glimmering Orange Flower</td>
+<td>16 × flower (meta 1)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 5 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_2</code><br>Glimmering Magenta Flower</td>
+<td>16 × flower (meta 2)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 7 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_3</code><br>Glimmering Light Blue Flower</td>
+<td>16 × flower (meta 3)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 4 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_4</code><br>Glimmering Yellow Flower</td>
+<td>16 × flower (meta 4)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 4 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_5</code><br>Glimmering Lime Flower</td>
+<td>16 × flower (meta 5)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 6 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_6</code><br>Glimmering Pink Flower</td>
+<td>16 × flower (meta 6)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 0 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_7</code><br>Glimmering Gray Flower</td>
+<td>16 × flower (meta 7)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 2 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_8</code><br>Glimmering Light Gray Flower</td>
+<td>16 × flower (meta 8)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 15 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_9</code><br>Glimmering Cyan Flower</td>
+<td>16 × flower (meta 9)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 1 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_10</code><br>Glimmering Purple Flower</td>
+<td>16 × flower (meta 10)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 3 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_0</code><br>Glimmering White Flower</td>
+<td>16 × flower (meta 0)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 1 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_11</code><br>Glimmering Blue Flower</td>
+<td>16 × flower (meta 11)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 5 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_12</code><br>Glimmering Brown Flower</td>
+<td>16 × flower (meta 12)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 12 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_13</code><br>Glimmering Green Flower</td>
+<td>16 × flower (meta 13)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:foliage / metadata 13 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_14</code><br>Glimmering Red Flower</td>
+<td>16 × flower (meta 14)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 8 × 16</td>
+</tr>
+<tr>
+<td><code>flora_flower_15</code><br>Glimmering Black Flower</td>
+<td>16 × flower (meta 15)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:plants / metadata 5 × 16</td>
+</tr>
+<tr>
+<td><code>flora_virus_0</code><br>Botania virus / metadata 0</td>
+<td>16 × virus (meta 0)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 13 × 16</td>
+</tr>
+<tr>
+<td><code>flora_witchery_ingredient_78</code><br>Witchery ingredient / metadata 78</td>
+<td>64 × witchery_ingredient (meta 78)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers2 / metadata 7 × 16</td>
+</tr>
+<tr>
+<td><code>flora_witchery_ingredient_21</code><br>Witchery ingredient / metadata 21</td>
+<td>16 × witchery_ingredient (meta 21)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:flowers / metadata 8 × 16</td>
+</tr>
+<tr>
+<td><code>flora_witchery_ingredient_22</code><br>Witchery ingredient / metadata 22</td>
+<td>16 × witchery_ingredient (meta 22)</td>
+<td>800 purifying_fluid<br>800 liquid_death</td>
+<td style="text-align: right;">396 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:plants / metadata 15 × 16</td>
+</tr>
+<tr>
+<td><code>flora_golden_oak_2</code><br>ThaumicBases goldenOakSapling / metadata 2</td>
+<td>1 × golden_oak (meta 2)</td>
+<td>8,000 purifying_fluid<br>8,000 liquid_death</td>
+<td style="text-align: right;">3,960 L</td>
+<td>4 s / 1,920</td>
+<td>BiomesOPlenty:flowers2 / metadata 2 × 1</td>
+</tr>
+<tr>
+<td><code>flora_golden_oak_3</code><br>ThaumicBases goldenOakSapling / metadata 3</td>
+<td>1 × golden_oak (meta 3)</td>
+<td>8,000 purifying_fluid<br>8,000 liquid_death</td>
+<td style="text-align: right;">3,960 L</td>
+<td>4 s / 1,920</td>
+<td>BiomesOPlenty:flowers / metadata 11 × 1</td>
+</tr>
+<tr>
+<td><code>flora_rainbow_cactus_0</code><br>ThaumicBases rainbowCactus / metadata 0</td>
+<td>1 × rainbow_cactus (meta 0)</td>
+<td>200 purifying_fluid<br>200 liquid_death</td>
+<td style="text-align: right;">144 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:plants / metadata 12 × 1</td>
+</tr>
+<tr>
+<td><code>flora_rose_vine_0</code><br>WitchingGadgets WG_RoseVine / metadata 0</td>
+<td>1 × rose_vine (meta 0)</td>
+<td>200 purifying_fluid<br>200 liquid_death</td>
+<td style="text-align: right;">144 L</td>
+<td>0.5 s / 480</td>
+<td>BiomesOPlenty:foliage / metadata 7 × 1</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-files-tests-and-provenance">10. Files, tests, and provenance</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.lua</code></td>
+<td>OpenOS commands, input transaction journal, main loop and recovery</td>
+</tr>
+<tr>
+<td><code>dt_core.lua</code></td>
+<td>Strict recipe recognition and measured input handoff</td>
+</tr>
+<tr>
+<td><code>dt_io.lua</code></td>
+<td>Real transposer/redstone I/O, optional managed exports, fluid probe</td>
+</tr>
+<tr>
+<td><code>config.lua</code></td>
+<td>Two input addresses, redstone, directions, slots, external-output default</td>
+</tr>
+<tr>
+<td><code>recipes.lua</code></td>
+<td>All 33 runtime entries</td>
+</tr>
+<tr>
+<td><code>recipes.json</code> / <code>recipes.csv</code></td>
+<td>Exports of the complete catalog</td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td>PC simulations; not needed on the OC computer</td>
+</tr>
+<tr>
+<td><code>TEST-RESULTS.txt</code></td>
+<td>Actual test output and limits</td>
+</tr>
+<tr>
+<td><code>SHA256SUMS.txt</code></td>
+<td>Package checksums, excluding this checksum file itself</td>
+</tr>
+</tbody>
+</table></div>
+<p>Install the five Lua files from section 4. The guide and recipe reference also work offline.</p>
+<p>To rerun tests on a PC with Python and <code>lupa</code> installed:</p>
+<pre><code class="language-sh">python tests/run_tests.py
+</code></pre>
+<p>The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The added external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. Every shipped runtime Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.</p>
+<p>The catalog was reconstructed from GTNH primary sources and matched to all 33 unique Dissolution Tank entries in the available July 2026 archived dump. Local source snapshots were collected in October 2026. That establishes the bundled catalog, not the exact scripts of every updated 2.9 server.</p>
+<ul>
+<li><a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gtnhlanth/loader/RecipeLoader.java">Lanthanoid recipe loader</a>: monazite, bastnasite, samarium.</li>
+<li><a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/loaders/postload/chains/NetheriteRecipes.java">Prismarine chain</a>: fresh/recycled leaching.</li>
+<li><a href="https://github.com/GTNewHorizons/NewHorizonsCoreMod/blob/master/src/main/java/com/dreammaster/scripts/ScriptBiomesOPlenty.java">BOP integration scripts</a>: 24 flora conversions.</li>
+<li><a href="https://github.com/GTNewHorizons/OpenComputers/blob/master/src/main/scala/li/cil/oc/server/component/traits/WorldTankAnalytics.scala">OC tank analytics</a>: readable tank contents and capacities.</li>
+<li><a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/common/tileentities/machines/outputme/MTEHatchOutputME.java">Fluid ME Output Hatch</a> and <a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/common/tileentities/machines/outputme/MTEHatchOutputBusME.java">item ME Output Bus</a>: native output implementations.</li>
+</ul>
+<p>Upstream <code>master</code> links can change. After pack updates, compare NEI with <code>recipes.csv</code>, repeat the selected-tank probe, and recommission changed paths before unattended use.</p><div class="footer">Portable offline guide. Companion Lua files and tests are in the package. Commission against your own server before unattended use.</div></main></body></html>

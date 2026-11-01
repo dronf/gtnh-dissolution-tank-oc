@@ -1,0 +1,21 @@
+DISSOLUTION TANK OC CONTROLLER — VALIDATION RECORD
+Date: 2026-11-01
+Catalog: 33 unique recipes, each compared to source inputs/amounts and local archived dump.
+Execution: host-side Lua through Python lupa, mocked machine/components.
+Total simulated assertions: 125,276.
+Interruption scenarios: 33 x 8 managed-mode cases plus 33 x 6 external-mode cases.
+Default hardware: two input transposers, one redstone component, native ME export.
+External mode tests register no output components and return circuits while production runs.
+
+PASS: 73906 assertions; all 33 recipes, 8 interruption positions each, circuit round trips, strict matching, partial transfers, and fail-closed faults.
+Probe passed: test:industrial_hf; transferred and returned exactly 1 L
+PASS: real OC I/O driver, all 33 recipes, 407 assertions, quad source/destination selection, circuits, output drains, protected slots, capacity and API probe.
+PASS: external ME/export mode, 50963 assertions; all 33 recipes, six interruption positions each, no output components, early circuit returns, and a queued batch waiting for a busy machine.
+TOTAL: 125276 simulated assertions passed.
+
+Scope and limits:
+- Every shipped Lua file parses under the host Lua runtime.
+- Planner and state machine tested; real dt_io.lua exercised with mocked OC APIs.
+- OpenOS filesystem journaling and real computer shutdown behavior are not integration-tested.
+- No Minecraft, real transposers, machine covers, pack/server settings or live recipes tested.
+- Installed-world bindings, tank-index probe, redstone polarity and live commissioning are required.
