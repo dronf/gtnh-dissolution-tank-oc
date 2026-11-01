@@ -14,6 +14,20 @@ Start with the **[full build guide](GUIDE.md)** for parts, capacities, wiring, m
 
 ![Default layout: two input transposers and native ME export](layout.svg)
 
+### Install over an Internet Card
+
+With OpenOS installed on the HDD and an Internet Card fitted in a Tier 2+ card slot, run:
+
+```sh
+wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/main/install.lua /tmp/dt-install.lua && lua /tmp/dt-install.lua
+```
+
+This installs all six runtime files into `/home/dissolution`. It downloads one pinned, tested revision, verifies file lengths and Lua syntax, and only commits the installation after every download succeeds. It **refuses an existing destination**, so it cannot overwrite your configuration, bindings, or unfinished job. To install another copy, run the downloaded installer with a new directory, for example `lua /tmp/dt-install.lua /home/dissolution-new`.
+
+Then run `cd /home/dissolution`, `lua dt.lua components`, and `edit config.lua`. For transposers directly above the machine hatch/bus, use `stageSide='up'` and `machineSide='down'` in both input entries. Internet access is only needed for downloading; the controller can run after removing the Internet Card. HTTP access must be enabled by the server.
+
+### Hardware and manual installation
+
 1. Build the tank with an IV-capable power supply, a **LuV Quad Input Hatch**, ordinary input bus, native ME outputs, and an independently controlled start gate.
 2. Copy `dt.lua`, `dt_core.lua`, `dt_io.lua`, `dt_bindings.lua`, `recipes.lua`, and `config.lua` together to an OpenOS directory such as `/home/dissolution`.
 3. Run `lua dt.lua components`. Enter the two transposer UUIDs, redstone UUID, and correct directions in `config.lua`. Keep `outputMode='external'` for native ME export.
@@ -35,6 +49,7 @@ Do not feed machine inputs from another automation system. AE2 delivers complete
 | [dt_core.lua](dt_core.lua) | Strict recipe recognition and state machine |
 | [dt_io.lua](dt_io.lua) | Transposer/redstone driver and fluid-index probe |
 | [dt_bindings.lua](dt_bindings.lua) | Prefilled item/fluid identities with local override support |
+| [install.lua](install.lua) | Fresh-install Internet Card downloader; preserves existing installations |
 | [recipes.lua](recipes.lua) | Runtime catalog: all 33 entries |
 | [recipes.csv](recipes.csv) / [recipes.json](recipes.json) | Catalog exports |
 | [tests](tests) | Host-side simulations of controller and component behavior |
@@ -51,7 +66,7 @@ python -m pip install -r requirements-dev.txt
 python tests/run_tests.py
 ```
 
-The current suites pass **125,386 simulated assertions**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, and sample-free recognition with the loaded registry identities. Components and machine behavior are mocked; real OpenOS persistence, Minecraft, cover polarity, installed recipe changes, and native ME delivery still require live checks.
+The current suites pass **125,483 simulated assertions**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, sample-free recognition with the loaded registry identities, and installer failures/overwrite protection. Components and machine behavior are mocked; real OpenOS persistence, Minecraft, cover polarity, installed recipe changes, and native ME delivery still require live checks.
 
 ## Local state
 

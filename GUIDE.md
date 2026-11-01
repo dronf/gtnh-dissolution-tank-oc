@@ -110,6 +110,22 @@ For a circuit recipe it moves the required circuit to ordinary bus slot 2 after 
 
 ## 4. Install the program
 
+### Download with an Internet Card
+
+With OpenOS installed on the hard drive, insert an Internet Card into a Tier 2 or higher card slot and run:
+
+```sh
+wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/main/install.lua /tmp/dt-install.lua && lua /tmp/dt-install.lua
+```
+
+The installer puts all six runtime files in `/home/dissolution`. It uses a pinned tested revision, checks file sizes and Lua syntax, and stages every file before committing the new directory. If a download fails, it removes its partial staging files. It refuses to overwrite any existing destination. To install another copy, use a new directory: `lua /tmp/dt-install.lua /home/dissolution-new`.
+
+HTTP access must be enabled by the server. The [Internet Card](https://ocdoc.cil.li/item:internet_card) is required only while downloading; the controller runs without one afterward. The full offline guide is meant for your normal browser, while the installer copies just the runtime files.
+
+Then follow the component-address, material-profile, and commissioning steps below. For your top-mounted transposer layout, use `stageSide='up'` and `machineSide='down'` for both input roles, and the actual compass direction for `lockerSide`.
+
+### Manual copy alternative
+
 Extract the package on your PC. Copy these **six files together** into an OpenOS directory such as `/home/dissolution`:
 
 ```
@@ -428,6 +444,7 @@ All flora recipes are circuit-free and produce McGuffium239 plus the listed Biom
 | `dt_core.lua` | Strict recipe recognition and measured input handoff |
 | `dt_io.lua` | Real transposer/redstone I/O, optional managed exports, fluid probe |
 | `dt_bindings.lua` | Prefilled registry identities and local overrides; no sample collection required |
+| `install.lua` | Optional Internet Card downloader for a new installation directory |
 | `REGISTRY.md` | All exact material identities and their evidence |
 | `config.lua` | Two input addresses, redstone, directions, slots, external-output default |
 | `recipes.lua` | All 33 runtime entries |
@@ -444,7 +461,7 @@ To rerun tests on a PC with Python and `lupa` installed:
 python tests/run_tests.py
 ```
 
-The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The added external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks all real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free `materials` command. Every shipped runtime Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.
+The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free `materials` command. Installer tests cover a complete six-file download, existing-install protection, incomplete/invalid responses, interrupted connections, cleanup, alternate destinations, and a missing Internet Card. Every shipped Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.
 
 The catalog was reconstructed from GTNH primary sources and matched to all 33 unique Dissolution Tank entries in the available July 2026 archived dump. Local source snapshots were collected in October 2026. That establishes the bundled catalog, not the exact scripts of every updated 2.9 server.
 

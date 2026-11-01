@@ -32,7 +32,11 @@ Prepared 1 November 2026. Native ME export and prefilled GTNH 2.9 material ident
 <li><a href="#d-circuit-locker">D. Circuit locker</a></li>
 </ul>
 </li>
-<li><a href="#4-install-the-program">4. Install the program</a></li>
+<li><a href="#4-install-the-program">4. Install the program</a><ul>
+<li><a href="#download-with-an-internet-card">Download with an Internet Card</a></li>
+<li><a href="#manual-copy-alternative">Manual copy alternative</a></li>
+</ul>
+</li>
 <li><a href="#5-use-the-prefilled-material-identities">5. Use the prefilled material identities</a><ul>
 <li><a href="#optional-item-overrides">Optional item overrides</a></li>
 <li><a href="#optional-fluid-overrides">Optional fluid overrides</a></li>
@@ -245,6 +249,14 @@ Prepared 1 November 2026. Native ME export and prefilled GTNH 2.9 material ident
 <p>Put exactly <strong>one circuit programmed to 1 in locker slot 1</strong> and <strong>one circuit programmed to 9 in locker slot 2</strong>. Reserve those slots. The program never manufactures, reprograms, or consumes the circuits.</p>
 <p>For a circuit recipe it moves the required circuit to ordinary bus slot 2 after fluids and consumed items are correct. Once the consumed ingredients disappear, the circuit returns immediately to its home slot; it does not wait for processing or ME delivery. Circuit-free recipes leave both circuits home. A following recipe can reuse a returned circuit while the previous recipe is still running.</p>
 <h2 id="4-install-the-program">4. Install the program</h2>
+<h3 id="download-with-an-internet-card">Download with an Internet Card</h3>
+<p>With OpenOS installed on the hard drive, insert an Internet Card into a Tier 2 or higher card slot and run:</p>
+<pre><code class="language-sh">wget -f https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/main/install.lua /tmp/dt-install.lua &amp;&amp; lua /tmp/dt-install.lua
+</code></pre>
+<p>The installer puts all six runtime files in <code>/home/dissolution</code>. It uses a pinned tested revision, checks file sizes and Lua syntax, and stages every file before committing the new directory. If a download fails, it removes its partial staging files. It refuses to overwrite any existing destination. To install another copy, use a new directory: <code>lua /tmp/dt-install.lua /home/dissolution-new</code>.</p>
+<p>HTTP access must be enabled by the server. The <a href="https://ocdoc.cil.li/item:internet_card">Internet Card</a> is required only while downloading; the controller runs without one afterward. The full offline guide is meant for your normal browser, while the installer copies just the runtime files.</p>
+<p>Then follow the component-address, material-profile, and commissioning steps below. For your top-mounted transposer layout, use <code>stageSide='up'</code> and <code>machineSide='down'</code> for both input roles, and the actual compass direction for <code>lockerSide</code>.</p>
+<h3 id="manual-copy-alternative">Manual copy alternative</h3>
 <p>Extract the package on your PC. Copy these <strong>six files together</strong> into an OpenOS directory such as <code>/home/dissolution</code>:</p>
 <pre><code>dt.lua
 dt_core.lua
@@ -927,6 +939,10 @@ lua dt.lua check
 <td>Prefilled registry identities and local overrides; no sample collection required</td>
 </tr>
 <tr>
+<td><code>install.lua</code></td>
+<td>Optional Internet Card downloader for a new installation directory</td>
+</tr>
+<tr>
 <td><code>REGISTRY.md</code></td>
 <td>All exact material identities and their evidence</td>
 </tr>
@@ -960,7 +976,7 @@ lua dt.lua check
 <p>To rerun tests on a PC with Python and <code>lupa</code> installed:</p>
 <pre><code class="language-sh">python tests/run_tests.py
 </code></pre>
-<p>The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The added external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks all real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free <code>materials</code> command. Every shipped runtime Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.</p>
+<p>The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free <code>materials</code> command. Installer tests cover a complete six-file download, existing-install protection, incomplete/invalid responses, interrupted connections, cleanup, alternate destinations, and a missing Internet Card. Every shipped Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.</p>
 <p>The catalog was reconstructed from GTNH primary sources and matched to all 33 unique Dissolution Tank entries in the available July 2026 archived dump. Local source snapshots were collected in October 2026. That establishes the bundled catalog, not the exact scripts of every updated 2.9 server.</p>
 <ul>
 <li><a href="https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gtnhlanth/loader/RecipeLoader.java">Lanthanoid recipe loader</a>: monazite, bastnasite, samarium.</li>
