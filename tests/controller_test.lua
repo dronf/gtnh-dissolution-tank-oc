@@ -45,11 +45,13 @@ function Fake:fillFluid(name,need)
  eq(self.enabled,false,'fluid moved while start signal on');eq(core.empty(self.items),true,'item went before fluid')
  local n=math.min(need,self.stageFluids[name] or 0,137)
  add(self.stageFluids,name,-n);add(self.fluids,name,n)
+ return n
 end
 function Fake:fillItem(key,need)
  eq(self.enabled,false)
  for k,n in pairs(self.target.fluids) do eq(self.fluids[k],n,'item sent before exact fluids') end
  local n=math.min(need,self.stageItems[key] or 0,3);add(self.stageItems,key,-n);add(self.items,key,n)
+ return n
 end
 function Fake:insertCircuit(number,key)
  eq(self.enabled,false);eq(self.locker[number],1);eq(self.items[key],nil)

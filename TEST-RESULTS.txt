@@ -2,7 +2,7 @@ DISSOLUTION TANK OC CONTROLLER — VALIDATION RECORD
 Date: 2026-11-01
 Catalog: 33 unique recipes, each compared to source inputs/amounts and local archived dump.
 Execution: host-side Lua 5.2 through Python lupa, mocked machine/components.
-Total simulated assertions: 126,083.
+Total simulated assertions: 126,695.
 Interruption scenarios: 33 x 8 managed-mode cases plus 33 x 6 external-mode cases.
 Default hardware: two input transposers, one redstone component, native ME export.
 External mode tests register no output components and return circuits while production runs.
@@ -13,9 +13,10 @@ PASS: real OC I/O driver, all 33 recipes, 407 assertions, quad source/destinatio
 PASS: external ME/export mode, 50963 assertions; all 33 recipes, six interruption positions each, no output components, early circuit returns, and a queued batch waiting for a busy machine.
 PASS: 110 sample-free binding assertions; 9 loaded item identities, 11 fluid identities, all 33 recipe matches, override precedence, and hardware-free materials command.
 PASS: 146 installer assertions; six pinned files, nil-returning OpenOS close, standard Lua close, disk errors, existing-install protection, invalid/interrupted downloads and cleanup.
-PASS: 457 journal assertions; real CLI saves/clears a transaction with nil-returning OpenOS close and rejects a failed flush before starting.
-PASS: 94 CLI assertions; real OpenOS relative/absolute chunk names, native file execution, config beside the script, and component discovery before configuration.
-TOTAL: 126083 simulated assertions passed.
+PASS: 177 journal assertions; real CLI saves/clears a transaction with nil-returning OpenOS close and rejects a failed flush before starting.
+PASS: 111 CLI assertions; real OpenOS relative/absolute chunk names, native file execution, config beside the script, and component discovery before configuration.
+PASS: 875 performance assertions; 33 full CLI jobs, phase checkpoints, two IV fluid calls per recipe, snapshot indexing, 66 mid-transfer reboots, rate adaptation and blocked-transfer backoff.
+TOTAL: 126695 simulated assertions passed.
 
 Scope and limits:
 - Every shipped Lua file parses under the host Lua runtime.

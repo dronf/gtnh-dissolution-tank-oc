@@ -24,7 +24,8 @@ local function run(command,source,cwd,noConfig)
  package.loaded.computer={}
  package.loaded.dt_io={new=function(cfg)
   eq(cfg.marker,'beside-script')
-  return {enable=function()enables=enables+1 end,scan=function()scans=scans+1 end}
+  return {enable=function()enables=enables+1 end,scan=function()scans=scans+1 end,
+   fluidRate=function()return 163840 end,fluidChunkLimit=128000,activePollSeconds=0.05}
  end}
  local oldDofile,oldPrint,oldSleep=dofile,print,os.sleep
  dofile=function(path)
@@ -60,5 +61,7 @@ for _,case in ipairs({{'=dt.lua','/home/dissolution'},{'=/home/dissolution/dt.lu
  eq(scan.ok,true,tostring(scan.reason));eq(scan.scans,1)
  eq(scan.loaded[#scan.loaded],'/home/dissolution/config.lua')
 end
+local rates=run('rates','=dt.lua','/home/dissolution',false)
+eq(rates.ok,true,tostring(rates.reason));eq(rates.lines:find('163840',1,true)~=nil,true);eq(rates.lines:find('128000',1,true)~=nil,true)
 print('PASS: '..checks..' CLI assertions; real OpenOS relative/absolute chunk names, native file execution, config beside the script, and component discovery before configuration.')
 return {checks=checks}

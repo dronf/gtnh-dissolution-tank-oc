@@ -6,11 +6,11 @@ local shell=require('shell')
 assert(component.isAvailable('internet'),'Insert an Internet Card; HTTP must be enabled by the server')
 
 -- Pin one tested runtime snapshot so a download never mixes revisions.
-local revision='c32d04e5ad1f9db3e47304a63b75b7aad81ba001'
+local revision='075b98d7dddc23cc25f5e54d5e97058110b8d9a8'
 local base='https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/'..revision..'/'
 local files={
-  {'dt.lua',11011},{'dt_core.lua',8035},{'dt_io.lua',10977},
-  {'dt_bindings.lua',1733},{'recipes.lua',10944},{'config.lua',1462}
+  {'dt.lua',12309},{'dt_core.lua',8317},{'dt_io.lua',12386},
+  {'dt_bindings.lua',1733},{'recipes.lua',10944},{'config.lua',1666}
 }
 local args={...}
 assert(#args<=1,'Usage: lua install.lua [new-install-directory]')

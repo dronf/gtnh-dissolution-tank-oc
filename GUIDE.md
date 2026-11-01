@@ -166,14 +166,18 @@ maxEUt=7680,
 preferCircuit=9,
 onlyRecipe=nil,
 sourceTankBase=0,
-fluidChunk=1000, itemChunk=64,
-pollSeconds=0.25, jobTimeoutSeconds=1800,
+fluidChunk='auto', transferWindowSeconds=4, itemChunk=64,
+pollSeconds='auto', idlePollSeconds=0.5, jobTimeoutSeconds=1800,
 commissioningPassed=false
 ```
 
 `maxEUt` is a catalog filter and a declared capability, not a reading from the energy hatch. It cannot prove that you have power, maintenance, correct voltage, or enough amperage. All-33 startup checks require it to be at least 7,680.
 
-`fluidChunk` is a maximum request, not an assumed delivered amount. A transposer may deliver less, or nothing. The next step rereads the real hatch. OC transfer limits and server settings affect speed; increase the job timeout if legitimate loading plus processing takes longer than 30 minutes. Larger requests do not bypass the OC transfer rate.
+With `fluidChunk='auto'` and `pollSeconds='auto'`, the driver queries the fluid-input transposer's `getFluidTransferRate()`. A basic 2,560 L/s transposer uses requests up to 10,240 L and a 0.25 s wait when stalled; an IV 163,840 L/s transposer uses requests up to 128,000 L and a 0.05 s wait. Successful work advances immediately with an OpenOS yield. Idle staging checks use `idlePollSeconds`, defaulting to 0.5 s in the template. These settings are read when the command starts.
+
+`fluidChunk` is a maximum request, not an assumed delivered amount. Every request is bounded by the remaining recipe amount and actual staged contents, and the next step rereads the real hatch. Numeric chunk/poll settings remain supported. Without the rate API, auto mode falls back to a 128,000 L maximum request and 0.1 s active wait. Larger requests do not bypass the native OC transfer rate. Increase the job timeout if legitimate loading and waiting for acceptance take longer than 30 minutes.
+
+Run `lua dt.lua rates` while the controller is stopped to see the detected rate and selected limits. See [performance and existing-install upgrade instructions](PERFORMANCE.md) and the [production checklist](PRODUCTION.md).
 
 With `outputMode='external'`, no `outputFluids` or `outputItems` entry is required. The default config comments out the old optional entries. Missing output hardware is expected in this mode.
 
@@ -305,7 +309,7 @@ Examples:
 
 The circuit-1 and circuit-9 variants share proportional ingredients. Nine small monazite batches have the same staged amounts as one circuit-9 batch. The default `preferCircuit=9` chooses the large variant when both match. To demand the small variant, set `onlyRecipe='monazite_1'`, or configure the preference appropriately. This is a policy choice; ingredient quantities alone cannot express which of those two you intended.
 
-For AE2, make processing patterns whose destinations are the **staging buffers**. Include consumed ingredients and exact fluids; omit the reusable circuit from the pattern. The program chooses its circuit. Use an appropriate fluid-capable pattern/provider arrangement for your pack, with blocking or equivalent queue isolation, so different recipes do not mix in staging. Verify exact delivered liters with `scan` before unattended crafting.
+For AE2, make processing patterns whose destinations are the **staging buffers**. Include consumed ingredients and exact fluids; omit the reusable circuit from the pattern. The program chooses its circuit. Use an appropriate fluid-capable pattern/provider arrangement for your pack, with blocking or equivalent queue isolation, so different recipes do not mix in staging. Isolation must cover **both** the item chest and fluid staging hatch, including fluid-only recipes: blocking on the chest alone is insufficient. Verify exact delivered liters with `scan` before unattended crafting.
 
 Configure expected products from NEI. Chance-based samarium byproducts should not be required as guaranteed returns. The controller does not create AE2 patterns, issue crafting requests, or report probabilistic outputs as guaranteed.
 
@@ -323,7 +327,7 @@ The machine may still be running after its input transaction is erased. If it la
 
 ### Normal stop and reboot recovery
 
-Ctrl+C stops the loop, attempts to lower the start signal, and retains any unfinished **input** transaction. A running recipe is not cancelled by removing start permission. The journal records the input recipe and phase before transfers; recovery compares actual input contents rather than assuming a previous transfer succeeded.
+Ctrl+C stops the loop, attempts to lower the start signal, and retains any unfinished **input** transaction. A running recipe is not cancelled by removing start permission. The journal durably records each new phase before its first action. Repeated partial transfers in the same phase reuse that checkpoint; recovery compares actual input contents rather than assuming a previous transfer succeeded.
 
 After an interrupted input job:
 
@@ -467,7 +471,7 @@ To rerun tests on a PC with Python and `lupa` installed:
 python tests/run_tests.py
 ```
 
-The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free `materials` command. Installer tests cover a complete six-file download, existing-install protection, incomplete/invalid responses, interrupted connections, cleanup, alternate destinations, and a missing Internet Card. Installer and real-CLI journal regression tests also cover successful OpenOS closes returning no value, explicit flushes, and storage failures before machine start. Every shipped Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.
+The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free `materials` command. Installer tests cover a complete six-file download, existing-install protection, incomplete/invalid responses, interrupted connections, cleanup, alternate destinations, and a missing Internet Card. Installer and real-CLI journal regression tests also cover successful OpenOS closes returning no value, explicit flushes, and storage failures before machine start. The performance suite runs the real CLI and driver across all 33 recipes, including 66 interruptions during fluid loading, tiny partial transfers, blocked transfers, zero-count ghost slots, bulk inventory snapshots, tier detection, and a queued batch behind a busy machine. Every shipped Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.
 
 The catalog was reconstructed from GTNH primary sources and matched to all 33 unique Dissolution Tank entries in the available July 2026 archived dump. Local source snapshots were collected in October 2026. That establishes the bundled catalog, not the exact scripts of every updated 2.9 server.
 

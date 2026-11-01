@@ -47,11 +47,19 @@ For a computer facing world east with its redstone wire on world east, use **`si
 
 Set this before starting a job. Configuration is included in the transaction signature: changing the side during an unfinished job makes `resume` reject it. For a job already waiting armed, route the existing configured output to the Machine Controller cover, let the batch be accepted, and wait for **“Input batch accepted; ready for next staged lot”** before stopping the loop and changing the side. That message confirms the input journal has cleared.
 
+## Speed and production
+
+The controller detects the fluid transposer's reported rate when `fluidChunk='auto'` and `pollSeconds='auto'`. It uses bulk inventory snapshots, advances successful steps without an added polling delay, checkpoints each phase once, and sends redstone only when the level changes. Only the fluid-side transposer needs a tier upgrade; item transfers do not gain that fluid-rate multiplier.
+
+Run `lua dt.lua rates` while stopped to inspect the rate. See [PERFORMANCE.md](PERFORMANCE.md) for benchmarks and updating an existing installation without replacing its configuration. See [PRODUCTION.md](PRODUCTION.md) for the next live checks and AE2 staging requirements.
+
 ## Files
 
 | File | Purpose |
 |---|---|
 | [GUIDE.md](GUIDE.md) | Complete build and operation guide |
+| [PERFORMANCE.md](PERFORMANCE.md) | Automatic transfer tuning, measured call counts, existing-install update |
+| [PRODUCTION.md](PRODUCTION.md) | Live production checks and AE2 on-demand feeding requirements |
 | [config.lua](config.lua) | Your addresses, directions, slots, and enable flag |
 | [dt.lua](dt.lua) | OpenOS CLI, main loop, transaction journal and recovery |
 | [dt_core.lua](dt_core.lua) | Strict recipe recognition and state machine |
@@ -74,7 +82,7 @@ python -m pip install -r requirements-dev.txt
 python tests/run_tests.py
 ```
 
-The current suites pass **126,083 simulated assertions on Lua 5.2**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, sample-free recognition with loaded registry identities, installer failures/overwrite protection, and journal writes with OpenOS-style file handles. CLI tests reproduce OpenOS's relative/absolute script chunk names and check that component discovery works without configuration. Installer/journal writes explicitly flush and accept a successful close with no return value; storage failures stop the operation. Components and machine behavior are mocked; real Minecraft persistence, cover polarity, installed recipe changes, and native ME delivery still require live checks.
+The current suites pass **126,695 simulated assertions on Lua 5.2**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, sample-free recognition with loaded registry identities, installer failures/overwrite protection, and journal writes with OpenOS-style file handles. CLI tests reproduce OpenOS's relative/absolute script chunk names and check that component discovery works without configuration. Installer/journal writes explicitly flush and accept a successful close with no return value; storage failures stop the operation. Components and machine behavior are mocked; real Minecraft persistence, cover polarity, installed recipe changes, and native ME delivery still require live checks.
 
 ## Local state
 
