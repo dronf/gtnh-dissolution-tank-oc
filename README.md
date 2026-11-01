@@ -2,6 +2,8 @@
 
 Automate all **33 Dissolution Tank recipes** in the checked GTNH 2.9 catalog with exact fluid batches and reusable programmed circuits.
 
+**No ingredient samples required for setup.** Item/fluid identities are prefilled from the loaded GTNH 2.9 registry data. You can use recipes as their ingredients become available; manual binding is an optional override. See [the identity profile](REGISTRY.md).
+
 The default layout uses **two input transposers**. Products export through your normal **ME Output Hatch and ME Output Bus**. The program loads fluids first, verifies their actual amounts, loads consumed items, inserts the circuit last, and enables the machine. After the inputs are consumed it returns the circuit and can prepare the next batch.
 
 **Input acceptance is not production completion.** The controller does not monitor native ME exports. It has passed host-side simulations; live Minecraft commissioning is required.
@@ -13,9 +15,9 @@ Start with the **[full build guide](GUIDE.md)** for parts, capacities, wiring, m
 ![Default layout: two input transposers and native ME export](layout.svg)
 
 1. Build the tank with an IV-capable power supply, a **LuV Quad Input Hatch**, ordinary input bus, native ME outputs, and an independently controlled start gate.
-2. Copy `dt.lua`, `dt_core.lua`, `dt_io.lua`, `recipes.lua`, and `config.lua` together to an OpenOS directory such as `/home/dissolution`.
+2. Copy `dt.lua`, `dt_core.lua`, `dt_io.lua`, `dt_bindings.lua`, `recipes.lua`, and `config.lua` together to an OpenOS directory such as `/home/dissolution`.
 3. Run `lua dt.lua components`. Enter the two transposer UUIDs, redstone UUID, and correct directions in `config.lua`. Keep `outputMode='external'` for native ME export.
-4. Follow the guide to bind item/fluid samples and circuits. Run `lua dt.lua check` and verify **33 / 33** material bindings.
+4. Run `lua dt.lua materials` to see the prefilled identities (**33 / 33**, no samples or hardware needed). Put the real circuits in their locker and use `lua dt.lua check` for hardware checks. Binding commands are needed only for server-specific overrides.
 5. Complete the selected-fluid probe, start-gate checks, and live recipe tests. Set `commissioningPassed=true` only after those checks.
 6. Use `lua dt.lua plan` for a staged-lot dry run, then `lua dt.lua run`. Use `resume` to recover an unfinished input transaction after inspection.
 
@@ -32,6 +34,7 @@ Do not feed machine inputs from another automation system. AE2 delivers complete
 | [dt.lua](dt.lua) | OpenOS CLI, main loop, transaction journal and recovery |
 | [dt_core.lua](dt_core.lua) | Strict recipe recognition and state machine |
 | [dt_io.lua](dt_io.lua) | Transposer/redstone driver and fluid-index probe |
+| [dt_bindings.lua](dt_bindings.lua) | Prefilled item/fluid identities with local override support |
 | [recipes.lua](recipes.lua) | Runtime catalog: all 33 entries |
 | [recipes.csv](recipes.csv) / [recipes.json](recipes.json) | Catalog exports |
 | [tests](tests) | Host-side simulations of controller and component behavior |
@@ -48,7 +51,7 @@ python -m pip install -r requirements-dev.txt
 python tests/run_tests.py
 ```
 
-The current suites pass **125,276 simulated assertions**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, and a second batch waiting behind a busy machine. Components and machine behavior are mocked; real OpenOS persistence, Minecraft, cover polarity, installed recipe changes, and native ME delivery still require live checks.
+The current suites pass **125,386 simulated assertions**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, and sample-free recognition with the loaded registry identities. Components and machine behavior are mocked; real OpenOS persistence, Minecraft, cover polarity, installed recipe changes, and native ME delivery still require live checks.
 
 ## Local state
 

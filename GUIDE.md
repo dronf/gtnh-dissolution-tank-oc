@@ -1,11 +1,13 @@
 # Dissolution Tank automation with OpenComputers
 
 **GTNH 2.9 · all 33 recipes · two transposers · native ME outputs · reusable circuits**<br>
-Prepared 1 November 2026. Revised to make native ME export the default.
+Prepared 1 November 2026. Native ME export and prefilled GTNH 2.9 material identities are the defaults.
 
 This system watches a staging chest and staging fluid buffer, recognizes a complete recipe, and loads exactly one input batch into the Dissolution Tank. It verifies both fluid quantities before loading consumed items, inserts a required programmed circuit last, then allows the machine to start. Once those inputs are consumed, it returns the same circuit to its locker and can prepare the next batch.
 
 **Your normal output path handles the products:** an ME Output Hatch for fluids and an ME Output Bus, or your existing item export path, for item byproducts. The default controller has no output transposers, output addresses, product buffers, or output-inventory polling. It tracks input acceptance, not finished production or delivery to ME.
+
+**No ingredient samples are required to register the recipes.** The supplied material profile includes all nine item identities and eleven fluid names, checked against loaded-pack registry data. Commission recipes as you acquire their ingredients.
 
 The catalog contains **33 recipes: 9 processing recipes and 24 flora conversions**. Inputs were cross-checked against GTNH sources and 33 unique entries in the available archived recipe dump. Simulated tests exercise all recipes in both the new external-output mode and the optional original managed-output mode. **This has not been run inside Minecraft.** Compare the reference with NEI on your pack/server build and complete the live commissioning steps.
 
@@ -108,12 +110,13 @@ For a circuit recipe it moves the required circuit to ordinary bus slot 2 after 
 
 ## 4. Install the program
 
-Extract the package on your PC. Copy these **five files together** into an OpenOS directory such as `/home/dissolution`:
+Extract the package on your PC. Copy these **six files together** into an OpenOS directory such as `/home/dissolution`:
 
 ```
 dt.lua
 dt_core.lua
 dt_io.lua
+dt_bindings.lua
 recipes.lua
 config.lua
 ```
@@ -154,17 +157,32 @@ With `outputMode='external'`, no `outputFluids` or `outputItems` entry is requir
 
 If updating an earlier copy, finish or manually reconcile its old transaction before replacing files or changing modes. Keep an unfinished job's exact original configuration, bindings, and catalog for recovery; do not change its mode mid-job.
 
-## 5. Bind your instance's item and fluid identities
+## 5. Use the prefilled material identities
 
-The catalog uses symbolic material names. Binding learns your instance's actual registry names and item metadata instead of guessing mod IDs. These commands inspect samples and do not consume them. Normal inspection commands set the start signal off; run them only while the controller loop is stopped.
+All **nine item types and eleven fluid types** are already defined in `dt_bindings.lua`, using the registry names and metadata checked for GTNH 2.9. You do not need to collect rare flowers, saplings, fluids, or other ingredients as samples. All 33 recipes have identities immediately, including recipes whose ingredients you do not yet own.
+
+```sh
+lua dt.lua materials
+```
+
+This command lists effective IDs, labels defaults versus local overrides, and reports **33 / 33** identities. It works before component addresses are configured and moves nothing. The profile and evidence are documented in [REGISTRY.md](REGISTRY.md).
+
+Existing values in `bindings.dat` override the defaults. There is no automatic reset of earlier manual bindings. New binding commands save just local overrides. Keep the same profile, saved bindings, catalog, and configuration throughout an unfinished transaction; finish/reconcile an old job before upgrading these files.
+
+Configure the transposer/redstone addresses and directions, place the real circuits in their reserved locker slots, then run:
 
 ```sh
 lua dt.lua scan
+lua dt.lua check
 ```
 
-The scan must show the configured **input/staging/locker** inventories and each input tank compartment with a capacity and contents. Stop here if an endpoint is missing, inspection is disabled, or a direction is wrong. The program rejects tagged items whose NBT is hidden rather than treating different tagged stacks as the same ingredient. Use clean representative samples where possible.
+These are **hardware checks**, not a requirement to sample every ingredient. The scan should show the input, staging, and locker inventories and each input tank's capacity. The default profile supplies identities even if staging is completely empty. `check` verifies the input capacity and both locker circuits. It does not prove the recipe inputs are present or that all recipes have been live-tested.
 
-### Item bindings
+The program still inspects actual staged and machine contents during operation to measure transfers. Inspection must be enabled on the server. For tagged stacks, visible NBT is required; normal profile ingredients are untagged. Do not conflate different tagged items by hiding their NBT.
+
+### Optional item overrides
+
+Skip the following sampling tables for a standard matching GTNH 2.9 setup. Use them only if an actual server-specific registry or NBT difference prevents a recipe match.
 
 Place a sample in **staging chest slot 1**, run the corresponding command, then remove it before sampling another material. The slot number can be changed if needed.
 
@@ -182,7 +200,7 @@ Place a sample in **staging chest slot 1**, run the corresponding command, then 
 
 The catalog supplies the required metadata for flora variants and circuit programs. One glimmering-flower sample binds the base item for all 16 colors. **Ordinary mystical flowers or mushrooms are different base items and are not substitutes.** The same rule lets one correct Witchery ingredient base item cover its three listed metadata variants.
 
-### Fluid bindings
+### Optional fluid overrides
 
 Put a small amount of the named fluid into the staging quad, scan to find its compartment, and bind it. The example uses readable compartment **1**. Use the actual compartment number shown by `scan`. Remove each sample afterward; sample leftovers otherwise become extra staged ingredients.
 
@@ -202,13 +220,13 @@ Put a small amount of the named fluid into the staging quad, scan to find its co
 
 Standard/diluted HF must not be bound as industrial-strength HF. Two distinct aliases in the same recipe must not resolve to the same actual fluid. Labels are for people; matching uses the registry identity learned from the sample.
 
-Once all samples are removed and both circuits are home:
+If you used optional sample overrides, remove those samples and leave both circuits home before checking:
 
 ```sh
 lua dt.lua check
 ```
 
-The result must report **33 / 33** recipes with all material bindings. This checks machine input-fluid capacities and both circuits too. It does not inspect outputs in external mode. It does not prove your recipe versions, cover polarity, live transfer access, or power. Back up the resulting `bindings.dat` and your configured `config.lua`.
+The result must report **33 / 33** recipes with all material bindings. This checks machine input-fluid capacities and both circuits too. It does not inspect outputs in external mode. It does not prove your recipe versions, cover polarity, live transfer access, or power. Back up your configured `config.lua` and any `bindings.dat` created by optional overrides; no binding file is needed to use the defaults.
 
 ## 6. Commission it before production
 
@@ -217,7 +235,7 @@ The result must report **33 / 33** recipes with all material bindings. This chec
 The selected-tank argument needs special attention. The checked GTNH [transfer implementation](https://github.com/GTNewHorizons/OpenComputers/blob/master/src/main/scala/li/cil/oc/server/component/traits/InventoryTransfer.scala) passes the source tank argument into [FluidUtils](https://github.com/GTNewHorizons/OpenComputers/blob/master/src/main/scala/li/cil/oc/util/FluidUtils.scala) as a raw **zero-based** index. The readable `getFluidInTank` result is a **one-based Lua array**. Other forks/documentation may differ. The supplied driver handles that distinction with `sourceTankBase=0`.
 
 1. Keep `commissioningPassed=false`, the machine start signal off, all machine item slots empty, and the machine fluid input empty. Do not load production items during this test.
-2. Stage two **different** fluids in two known compartments. At least one should be in a compartment after the first. Use `scan` to identify their readable compartment numbers.
+2. Stage two **different readily available** fluids in two known compartments; water and lava can be used for this isolated transfer test, without any recipe items. At least one should be in a compartment after the first. Use `scan` to identify their readable compartment numbers.
 3. If the second readable compartment contains the intended sample, run:
 
    ```sh
@@ -238,7 +256,7 @@ With the program stopped and no production inputs present, test the redstone lin
 ### Live recipe and queue tests
 
 1. Inspect an idle machine with empty inputs. Run `scan`, `check`, and the successful fluid probe. Remove sample items/fluids from staging. `check` must show **33 / 33** and output mode **external**.
-2. Compare `prismarine_fresh` against NEI. Stage **24 Prismarine Shards + 4,000 L Industrial Strength HF + 4,000 L Hydrogen Peroxide**. Run `lua dt.lua plan`; it must identify one fresh batch without moving anything.
+2. Start with a recipe you can actually supply; the following example is `prismarine_fresh`. Compare it against NEI. Stage **24 Prismarine Shards + 4,000 L Industrial Strength HF + 4,000 L Hydrogen Peroxide**. Run `lua dt.lua plan`; it must identify one fresh batch without moving anything.
 3. After the wiring/binding checks, set `commissioningPassed=true` in `config.lua`. Run `lua dt.lua run`. Watch exact fluids arrive first, then items, then start permission. Once the tank consumes the batch, the feeder reports an accepted input batch. It need not wait for products to appear.
 4. Independently watch the machine finish and confirm **8,000 L Prismarine Solution** and the item byproduct reach ME through your native outputs. A feeder “accepted” message is not proof of that delivery.
 5. Stop the waiting loop with Ctrl+C and test `monazite_1`. Confirm circuit 1 leaves locker slot 1, goes to ordinary bus slot 2, and returns after ingredient consumption—even if the tank is still processing.
@@ -247,9 +265,9 @@ With the program stopped and no production inputs present, test the redstone lin
 8. While a long recipe is active, stage a second complete recipe. Watch it load with permission off, reach exact amounts, then wait armed with its required circuit. It must remain in the machine inputs until the running recipe finishes and the next one starts. No partial fluid load should be allowed to start.
 9. Test a controlled interruption during input loading and recover with `resume`. Test an interruption after input consumption; the circuit should still return exactly once. In both cases independently verify the actual product, because external mode does not supervise production.
 10. Test your native export behavior with ME full/offline, using a recoverable setup. Confirm void protection/buffering work as expected and understand how you restore export. The feeder must not be used to diagnose or certify ME delivery.
-11. Commission one of each remaining recipe against the reference below before claiming all 33 are proven on your server. Then set `onlyRecipe=nil` with no unfinished job and test alternating circuit-1, circuit-9, and circuit-free recipes.
+11. Commission other recipes **as their ingredients become available**. You do not need to own or test every ingredient before using a recipe you can supply. Keep untested recipes marked as such, and only claim all 33 are live-proven after running each. Set `onlyRecipe=nil` with no unfinished job when ready for automatic recognition.
 
-Set `onlyRecipe` to a particular recipe ID when removing ambiguity for a test. Edit configuration only when there is no unfinished input transaction. Simulation covers logic and mocked I/O; it cannot validate your physical hatches, actual covers, server settings, or installed recipe changes.
+Tests for recipes you cannot currently supply can wait. Set `onlyRecipe` to a particular recipe ID when removing ambiguity for a test. Edit configuration only when there is no unfinished input transaction. Simulation covers logic and mocked I/O; it cannot validate your physical hatches, actual covers, server settings, or installed recipe changes.
 
 ## 7. Recipe recognition and AE2 use
 
@@ -409,6 +427,8 @@ All flora recipes are circuit-free and produce McGuffium239 plus the listed Biom
 | `dt.lua` | OpenOS commands, input transaction journal, main loop and recovery |
 | `dt_core.lua` | Strict recipe recognition and measured input handoff |
 | `dt_io.lua` | Real transposer/redstone I/O, optional managed exports, fluid probe |
+| `dt_bindings.lua` | Prefilled registry identities and local overrides; no sample collection required |
+| `REGISTRY.md` | All exact material identities and their evidence |
 | `config.lua` | Two input addresses, redstone, directions, slots, external-output default |
 | `recipes.lua` | All 33 runtime entries |
 | `recipes.json` / `recipes.csv` | Exports of the complete catalog |
@@ -416,7 +436,7 @@ All flora recipes are circuit-free and produce McGuffium239 plus the listed Biom
 | `TEST-RESULTS.txt` | Actual test output and limits |
 | `SHA256SUMS.txt` | Package checksums, excluding this checksum file itself |
 
-Install the five Lua files from section 4. The guide and recipe reference also work offline.
+Install the six Lua files from section 4. The guide and recipe reference also work offline.
 
 To rerun tests on a PC with Python and `lupa` installed:
 
@@ -424,7 +444,7 @@ To rerun tests on a PC with Python and `lupa` installed:
 python tests/run_tests.py
 ```
 
-The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The added external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. Every shipped runtime Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.
+The original core and driver suites test all 33 recipes, partial moves, strict matching, eight interruption positions per recipe, and circuit round trips in managed mode. The added external-output suite tests all 33 recipes with six interruption positions each, existing output contents, no registered output components, circuit return before production finishes, input-only scanning/capacity checks, and queuing behind a busy machine. The binding suite checks all real registry identities, all 33 sample-free recipe matches, local override precedence, and the hardware-free `materials` command. Every shipped runtime Lua file is parsed by the host interpreter. These tests mock game/component behavior; they do not execute Minecraft or real OpenOS persistence.
 
 The catalog was reconstructed from GTNH primary sources and matched to all 33 unique Dissolution Tank entries in the available July 2026 archived dump. Local source snapshots were collected in October 2026. That establishes the bundled catalog, not the exact scripts of every updated 2.9 server.
 

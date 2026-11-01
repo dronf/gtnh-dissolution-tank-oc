@@ -1,0 +1,65 @@
+{
+  "pack": "GTNH 2.9 Release",
+  "gregtechVersion": "5.09.54.265",
+  "evidence": "FML loaded-registry remap/default-fluid entries; metadata from recipe sources and archived recipe dump. Numeric IDs are evidence only, not used at runtime.",
+  "items": {
+    "saltpeter": {
+      "name": "gregtech:gt.metaitem.01",
+      "damage": 2836,
+      "mappedNumericIdForEvidenceOnly": 7615
+    },
+    "prismarine_shard": {
+      "name": "Botania:manaResource",
+      "damage": 10,
+      "mappedNumericIdForEvidenceOnly": 6051
+    },
+    "flower": {
+      "name": "Botania:shinyFlower",
+      "damage": 0,
+      "mappedNumericIdForEvidenceOnly": 1409
+    },
+    "virus": {
+      "name": "Botania:virus",
+      "damage": 0,
+      "mappedNumericIdForEvidenceOnly": 6120
+    },
+    "witchery_ingredient": {
+      "name": "witchery:ingredient",
+      "damage": 78,
+      "mappedNumericIdForEvidenceOnly": 6526
+    },
+    "golden_oak": {
+      "name": "thaumicbases:goldenOakSapling",
+      "damage": 2,
+      "mappedNumericIdForEvidenceOnly": 3838
+    },
+    "rainbow_cactus": {
+      "name": "thaumicbases:rainbowCactus",
+      "damage": 0,
+      "mappedNumericIdForEvidenceOnly": 3831
+    },
+    "rose_vine": {
+      "name": "WitchingGadgets:WG_RoseVine",
+      "damage": 0,
+      "mappedNumericIdForEvidenceOnly": 10877
+    },
+    "circuit": {
+      "name": "gregtech:gt.integrated_circuit",
+      "damage": 1,
+      "mappedNumericIdForEvidenceOnly": 7614
+    }
+  },
+  "fluids": {
+    "water": "water",
+    "monazite_muddy": "muddy monazite rare earth solution",
+    "bastnasite_conditioned": "conditioned bastnasite mud",
+    "nitric_acid": "nitricacid",
+    "samarium_muddy": "muddy samarium rare earth solution",
+    "samarium_mud": "samarium rare earth mud",
+    "industrial_hf": "hydrofluoricacid",
+    "hydrogen_peroxide": "fluid.hydrogenperoxide",
+    "prismarine_peroxide": "prismarinecontaminatedhydrogenperoxide",
+    "purifying_fluid": "fluidpure",
+    "liquid_death": "fluiddeath"
+  }
+}

@@ -5,6 +5,7 @@ local here=filesystem.path(debug.getinfo(1,'S').source:sub(2))
 package.path=here..'?.lua;'..package.path
 local core=require('dt_core')
 local driver=require('dt_io')
+local profiles=require('dt_bindings')
 local cfg=dofile(here..'config.lua')
 local recipes=dofile(here..'recipes.lua')
 assert(#recipes==33,'Expected the verified 33-recipe catalog')
@@ -38,13 +39,16 @@ end
 local bindingPath=here..'bindings.dat'
 local jobPath=here..'transaction.dat'
 local lockPath=here..'controller.lock'
-local bindings=read(bindingPath) or {items={},fluids={}}
+local overrides=read(bindingPath) or {items={},fluids={}}
+overrides.items=overrides.items or {};overrides.fluids=overrides.fluids or {}
+local bindings=profiles.merge(overrides)
 local job=read(jobPath)
 local argv={...};local command=argv[1] or 'help'
 if command=='help' then
   print([[Dissolution Tank controller
   dt.lua components                  list component addresses
   dt.lua recipes                     print all 33 recipe IDs
+  dt.lua materials                   show prefilled identities and local overrides (no hardware)
   dt.lua scan                        inspect configured inventories and tanks
   dt.lua bind-item SYMBOL SLOT        sample staging-chest item identity
   dt.lua bind-fluid SYMBOL TANK       sample staging-tank fluid registry name
@@ -66,6 +70,19 @@ if command=='components' then
 elseif command=='recipes' then
   for n,r in ipairs(recipes) do print(n,r.id,r.name,'circuit '..r.circuit,'EU/t '..r.eut) end
   return
+elseif command=='materials' then
+  for _,kind in ipairs({'items','fluids'}) do
+    print(kind..':')
+    for _,symbol in ipairs(core.keys(bindings[kind])) do
+      local value=bindings[kind][symbol]
+      print(symbol,kind=='items' and core.itemKey(value) or value,
+        overrides[kind][symbol] and '(local override)' or '(GTNH 2.9 default)')
+    end
+  end
+  local count=0
+  for _,r in ipairs(recipes) do if pcall(core.targets,r,bindings) then count=count+1 end end
+  print('Recipes with material identities:',count,'/ 33; no ingredient samples required')
+  return
 end
 if command=='unlock' then
   assert(not argv[2], 'Usage: dt.lua unlock; first confirm no other controller process is running')
@@ -82,11 +99,15 @@ local function body()
   if command=='scan' then ioMachine:scan();return end
   if command=='bind-item' then
     noJob();assert(argv[2] and tonumber(argv[3]),'Usage: bind-item SYMBOL SLOT')
-    bindings.items[argv[2]]=ioMachine:sampleItem(tonumber(argv[3]));save(bindingPath,bindings)
+    assert(profiles.defaults.items[argv[2]],'Unknown item symbol; use materials')
+    bindings.items[argv[2]]=ioMachine:sampleItem(tonumber(argv[3]))
+    overrides.items[argv[2]]=bindings.items[argv[2]];save(bindingPath,overrides)
     print('Bound',argv[2],core.itemKey(bindings.items[argv[2]]));return
   elseif command=='bind-fluid' then
     noJob();assert(argv[2] and tonumber(argv[3]),'Usage: bind-fluid SYMBOL TANK')
-    bindings.fluids[argv[2]]=ioMachine:sampleFluid(tonumber(argv[3]));save(bindingPath,bindings)
+    assert(profiles.defaults.fluids[argv[2]],'Unknown fluid symbol; use materials')
+    bindings.fluids[argv[2]]=ioMachine:sampleFluid(tonumber(argv[3]))
+    overrides.fluids[argv[2]]=bindings.fluids[argv[2]];save(bindingPath,overrides)
     print('Bound',argv[2],bindings.fluids[argv[2]]);return
   elseif command=='bind-circuits' then
     noJob()
@@ -96,7 +117,8 @@ local function body()
     bindings.items.circuit=driver.identity(one)
     for _,n in ipairs({1,9}) do assert(ioMachine:circuitHome(n,core.resolveItem({key='circuit',damage=n},bindings)),
       'Locker must contain exactly one circuit programmed to '..n..' in its configured slot') end
-    save(bindingPath,bindings);print('Bound reusable circuit identities and verified locker');return
+    overrides.items.circuit=bindings.items.circuit
+    save(bindingPath,overrides);print('Bound reusable circuit identities and verified locker');return
   elseif command=='check' then
     ioMachine:capacityCheck()
     local count=0
