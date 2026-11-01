@@ -1,12 +1,22 @@
+local argv={...};local command=argv[1] or 'help'
+-- Component discovery must work before any files or addresses are configured.
+if command=='components' then
+  local component=require('component')
+  for _,kind in ipairs({'transposer','redstone'}) do for a in component.list(kind) do print(kind,a) end end
+  return
+end
 local filesystem=require('filesystem')
+local shell=require('shell')
 local serialization=require('serialization')
 local computer=require('computer')
-local here=filesystem.path(debug.getinfo(1,'S').source:sub(2))
+-- OpenOS `lua dt.lua` compiles with source '=dt.lua', not an absolute @filename.
+local source=debug.getinfo(1,'S').source
+local filename=assert(source:match('^[@=](.+)$'),'Run dt.lua from its installation directory')
+local here=filesystem.path(shell.resolve(filename))
 package.path=here..'?.lua;'..package.path
 local core=require('dt_core')
 local driver=require('dt_io')
 local profiles=require('dt_bindings')
-local cfg=dofile(here..'config.lua')
 local recipes=dofile(here..'recipes.lua')
 assert(#recipes==33,'Expected the verified 33-recipe catalog')
 local byId={} for _,r in ipairs(recipes) do byId[r.id]=r end
@@ -53,7 +63,6 @@ local overrides=read(bindingPath) or {items={},fluids={}}
 overrides.items=overrides.items or {};overrides.fluids=overrides.fluids or {}
 local bindings=profiles.merge(overrides)
 local job=read(jobPath)
-local argv={...};local command=argv[1] or 'help'
 if command=='help' then
   print([[Dissolution Tank controller
   dt.lua components                  list component addresses
@@ -73,11 +82,7 @@ if command=='help' then
 Edit config.lua first. Read GUIDE.html before commissioning.]])
   return
 end
-if command=='components' then
-  local component=require('component')
-  for _,kind in ipairs({'transposer','redstone'}) do for a in component.list(kind) do print(kind,a) end end
-  return
-elseif command=='recipes' then
+if command=='recipes' then
   for n,r in ipairs(recipes) do print(n,r.id,r.name,'circuit '..r.circuit,'EU/t '..r.eut) end
   return
 elseif command=='materials' then
@@ -100,6 +105,7 @@ if command=='unlock' then
   print('Stale process lock removed. This did not clear the transaction journal.');return
 end
 assert(not filesystem.exists(lockPath),'Another controller may be running. After a reboot, inspect the machine then use unlock.')
+local cfg=dofile(here..'config.lua')
 local ioMachine=driver.new(cfg,bindings)
 ioMachine:enable(false)
 os.sleep(1) -- Let the Machine Controller cover observe the low signal before touching inventories.
