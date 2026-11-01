@@ -39,6 +39,14 @@ The real circuits use an **ordinary bus slot**, not the dedicated circuit/ghost 
 
 Do not feed machine inputs from another automation system. AE2 delivers complete lots into the separate staging inventories. The program expects exclusive ownership of the actual input hatch and bus.
 
+### Redstone-card direction names
+
+The redstone card uses directions **relative to the computer's front**. Prefer `front`, `back`, `left`, `right`, `up`, or `down` in `redstone.side`. Its legacy `east` alias means **left**, while `west` means right, `north` means back, and `south` means front. These aliases do not necessarily identify world compass directions. Transposer directions use world axes.
+
+For a computer facing world east with its redstone wire on world east, use **`side='front'`**. Leaving `side='east'` in that layout instead outputs on world north. See the [OC redstone API](https://ocdoc.cil.li/component:redstone).
+
+Set this before starting a job. Configuration is included in the transaction signature: changing the side during an unfinished job makes `resume` reject it. For a job already waiting armed, route the existing configured output to the Machine Controller cover, let the batch be accepted, and wait for **“Input batch accepted; ready for next staged lot”** before stopping the loop and changing the side. That message confirms the input journal has cleared.
+
 ## Files
 
 | File | Purpose |

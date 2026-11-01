@@ -98,7 +98,11 @@ Change these example directions to your physical build. They are absolute world 
 
 ### C. Independent start gate
 
-Install a Machine Controller cover and select **Enable with signal**. Run a separate redstone connection from the computer's redstone output to that cover. The redstone side in config is measured from the computer case, not a transposer.
+Install a Machine Controller cover and select **Enable with signal**. Run a separate redstone connection from the computer's redstone output to that cover. A redstone card uses directions **relative to the computer's front**. Prefer `front`, `back`, `left`, `right`, `up`, or `down` for `redstone.side`. Its aliases `east`, `west`, `north`, and `south` mean left, right, back, and front respectively; they do not necessarily match world compass directions. See the [OC redstone API](https://ocdoc.cil.li/component:redstone). Transposer directions use world axes.
+
+Example: if the computer's front faces world east and the output wire is on world east, use **`side='front'`**. The default `side='east'` means the computer's left, which in that orientation is world north.
+
+Choose the side before running a transaction. If a batch is already waiting armed, configuration changes invalidate its resume signature. To finish that job, route the currently configured physical output to the cover. Wait for **“Input batch accepted; ready for next staged lot”**, which follows clearing the journal. Then stop the loop and change the configured side/wiring for future jobs.
 
 Signal 15 must permit new recipes, and signal 0 must prevent them. A batch already processing is allowed to finish while permission is off. Prove the polarity in the GUI before production. Start with the cover's ordinary enable mode. If you choose its optional safe mode, account for its critical-failure latch and manual reset behavior; see the [cover implementation](https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/src/main/java/gregtech/common/covers/CoverControlsWork.java).
 
