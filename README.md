@@ -66,7 +66,7 @@ python -m pip install -r requirements-dev.txt
 python tests/run_tests.py
 ```
 
-The current suites pass **125,989 simulated assertions**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, sample-free recognition with the loaded registry identities, installer failures/overwrite protection, and the real CLI's journal writes with OpenOS-style file handles. Installer/journal writes explicitly flush and accept a successful close with no return value; storage failures stop the operation. Components and machine behavior are mocked; real Minecraft persistence, cover polarity, installed recipe changes, and native ME delivery still require live checks.
+The current suites pass **126,083 simulated assertions on Lua 5.2**, including all 33 recipes, partial transfers, strict matching, circuit round trips, interrupted transactions, operation without output components, a second batch waiting behind a busy machine, sample-free recognition with loaded registry identities, installer failures/overwrite protection, and journal writes with OpenOS-style file handles. CLI tests reproduce OpenOS's relative/absolute script chunk names and check that component discovery works without configuration. Installer/journal writes explicitly flush and accept a successful close with no return value; storage failures stop the operation. Components and machine behavior are mocked; real Minecraft persistence, cover polarity, installed recipe changes, and native ME delivery still require live checks.
 
 ## Local state
 

@@ -1,8 +1,8 @@
 DISSOLUTION TANK OC CONTROLLER — VALIDATION RECORD
 Date: 2026-11-01
 Catalog: 33 unique recipes, each compared to source inputs/amounts and local archived dump.
-Execution: host-side Lua through Python lupa, mocked machine/components.
-Total simulated assertions: 125,989.
+Execution: host-side Lua 5.2 through Python lupa, mocked machine/components.
+Total simulated assertions: 126,083.
 Interruption scenarios: 33 x 8 managed-mode cases plus 33 x 6 external-mode cases.
 Default hardware: two input transposers, one redstone component, native ME export.
 External mode tests register no output components and return circuits while production runs.
@@ -14,7 +14,8 @@ PASS: external ME/export mode, 50963 assertions; all 33 recipes, six interruptio
 PASS: 110 sample-free binding assertions; 9 loaded item identities, 11 fluid identities, all 33 recipe matches, override precedence, and hardware-free materials command.
 PASS: 146 installer assertions; six pinned files, nil-returning OpenOS close, standard Lua close, disk errors, existing-install protection, invalid/interrupted downloads and cleanup.
 PASS: 457 journal assertions; real CLI saves/clears a transaction with nil-returning OpenOS close and rejects a failed flush before starting.
-TOTAL: 125989 simulated assertions passed.
+PASS: 94 CLI assertions; real OpenOS relative/absolute chunk names, native file execution, config beside the script, and component discovery before configuration.
+TOTAL: 126083 simulated assertions passed.
 
 Scope and limits:
 - Every shipped Lua file parses under the host Lua runtime.

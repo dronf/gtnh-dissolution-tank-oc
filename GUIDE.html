@@ -273,6 +273,7 @@ lua dt.lua components
 edit config.lua
 </code></pre>
 <p>Replace the two transposer addresses and redstone address with their full component UUIDs. Identify which is which by physical labeling and component inspection; the listing does not know your plumbing roles. Set all directions and locker/bus slots to match your build.</p>
+<p><code>components</code> can run before <code>config.lua</code> is configured or even present. Other commands resolve their companion files beside <code>dt.lua</code>, including when launched through OpenOS with <code>lua dt.lua ...</code>.</p>
 <p>Keep these defaults initially:</p>
 <pre><code class="language-lua">outputMode='external',
 consumedSlot=1, circuitSlot=2,

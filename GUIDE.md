@@ -150,6 +150,8 @@ edit config.lua
 
 Replace the two transposer addresses and redstone address with their full component UUIDs. Identify which is which by physical labeling and component inspection; the listing does not know your plumbing roles. Set all directions and locker/bus slots to match your build.
 
+`components` can run before `config.lua` is configured or even present. Other commands resolve their companion files beside `dt.lua`, including when launched through OpenOS with `lua dt.lua ...`.
+
 Keep these defaults initially:
 
 ```lua

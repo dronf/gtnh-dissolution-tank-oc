@@ -32,7 +32,8 @@ eq(profiles.merge({items={}}).fluids.water,'water','legacy partial binding file'
 eq(defaults.fluids.monazite_muddy,'muddy monazite rare earth solution','preserve spaces in fluid name')
 eq(defaults.items.prismarine_shard.damage,10,'Botania prismarine variant')
 -- Run the actual CLI's new materials command with no configured component access or samples.
-local oldFS,oldSerialization,oldComputer=package.loaded.filesystem,package.loaded.serialization,package.loaded.computer
+local oldFS,oldSerialization,oldComputer,oldShell=package.loaded.filesystem,package.loaded.serialization,package.loaded.computer,package.loaded.shell
+package.loaded.shell={resolve=function(path)return path end}
 package.loaded.filesystem={path=function()return testRoot..'/' end,exists=function()return false end}
 package.loaded.serialization={unserialize=function()error('No saved data exists')end}
 package.loaded.computer={uptime=function()error('Materials command must not start the controller')end}
@@ -40,7 +41,7 @@ local output={};local oldPrint=print
 print=function(...)local row={} for n=1,select('#',...) do row[#row+1]=tostring(select(n,...)) end output[#output+1]=table.concat(row,' ')end
 local ok,err=pcall(assert(loadfile(testRoot..'/dt.lua')),'materials')
 print=oldPrint
-package.loaded.filesystem=oldFS;package.loaded.serialization=oldSerialization;package.loaded.computer=oldComputer
+package.loaded.filesystem=oldFS;package.loaded.serialization=oldSerialization;package.loaded.computer=oldComputer;package.loaded.shell=oldShell
 assert(ok,err)
 local text=table.concat(output,'\n')
 eq(text:find('33 / 33',1,true)~=nil,true,'CLI resolves all recipes without hardware')
