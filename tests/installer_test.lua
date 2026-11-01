@@ -26,7 +26,7 @@ local function run(options)
  }
  package.loaded.internet={request=function(url)
   calls=calls+1
-  eq(url:find('/5f3198306fbbdf93d893c7c592541f22b84f76c5/',1,true)~=nil,true,'pinned source')
+  eq(url:find('/'..installerRevision..'/',1,true)~=nil,true,'pinned source')
   local name=url:match('/([^/]+)$');local contents=assert(installerPayloads[name],name)
   if options.badSize and calls==3 then contents=contents:sub(1,-2) end
   if options.badLua and calls==3 then contents=string.rep('?',#contents) end
@@ -41,7 +41,16 @@ local function run(options)
  print=function()end
  io.open=function(path,mode)
   eq(mode,'wb');eq(dirs[path:match('^(.*)/[^/]+$')],true)
-  return {write=function(self,value)data[path]=value;return self end,close=function()return true end}
+  return {write=function(self,value)
+     if options.writeFailure then return nil,'disk full on write' end
+     data[path]=value;return self
+    end,
+   flush=function(self)if options.flushFailure then return nil,'disk full on flush' end return self end,
+   close=function()
+    if options.closeFailure then return nil,'close failed' end
+    if options.standardClose then return true end
+    return nil -- OpenOS successful close has no result.
+   end}
  end
  local ok,reason=pcall(assert(loadfile(testRoot..'/install.lua')),options.destination)
  io.open=oldOpen;print=oldPrint
@@ -52,12 +61,15 @@ local good=run();eq(good.ok,true,tostring(good.reason));eq(good.calls,6)
 for name,contents in pairs(installerPayloads) do eq(good.data['/home/dissolution/'..name],contents) end
 eq(good.dirs['/home/dissolution.download-1'],nil)
 local existing=run({existing=true});eq(existing.ok,false);eq(existing.calls,0);eq(existing.data['/home/dissolution/config.lua'],'MY CONFIG')
-for _,fault in ipairs({'badSize','badLua','networkFailure'}) do
+for _,fault in ipairs({'badSize','badLua','networkFailure','writeFailure','flushFailure','closeFailure'}) do
  local result=run({[fault]=true});eq(result.ok,false,fault);eq(result.dirs['/home/dissolution'],nil)
  eq(result.dirs['/home/dissolution.download-1'],nil);eq(next(result.data),nil,'failed install must leave no partial runtime')
+ if fault=='writeFailure' or fault=='flushFailure' then eq(tostring(result.reason):find('disk full',1,true)~=nil,true,'show storage error') end
+ if fault=='closeFailure' then eq(tostring(result.reason):find('close failed',1,true)~=nil,true,'show close error') end
 end
 local noCard=run({noCard=true});eq(noCard.ok,false);eq(noCard.calls,0);eq(next(noCard.data),nil)
 local root=run({destination='/'});eq(root.ok,false);eq(root.calls,0)
 local custom=run({destination='/home/another-tank'});eq(custom.ok,true,tostring(custom.reason));eq(custom.dirs['/home/another-tank'],true)
-print('PASS: '..checks..' installer assertions; all six pinned files, existing-install protection, incomplete/invalid downloads, network interruption, cleanup and alternate destinations.')
+local standard=run({standardClose=true});eq(standard.ok,true,tostring(standard.reason))
+print('PASS: '..checks..' installer assertions; six pinned files, nil-returning OpenOS close, standard Lua close, disk errors, existing-install protection, invalid/interrupted downloads and cleanup.')
 return {checks=checks}

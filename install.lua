@@ -6,10 +6,10 @@ local shell=require('shell')
 assert(component.isAvailable('internet'),'Insert an Internet Card; HTTP must be enabled by the server')
 
 -- Pin one tested runtime snapshot so a download never mixes revisions.
-local revision='5f3198306fbbdf93d893c7c592541f22b84f76c5'
+local revision='ac0246bdd7dbdb86c93490b4b4f2014d89afb28a'
 local base='https://raw.githubusercontent.com/dronf/gtnh-dissolution-tank-oc/'..revision..'/'
 local files={
-  {'dt.lua',10281},{'dt_core.lua',8035},{'dt_io.lua',10977},
+  {'dt.lua',10696},{'dt_core.lua',8035},{'dt_io.lua',10977},
   {'dt_bindings.lua',1733},{'recipes.lua',10944},{'config.lua',1462}
 }
 local args={...}
@@ -48,8 +48,12 @@ local ok,why=xpcall(function()
     assert(compiled,'Invalid Lua download for '..name..': '..tostring(reason))
     local f=assert(io.open(temporary..'/'..name,'wb'))
     local written,writeReason=f:write(contents)
+    local flushed,flushReason=f:flush()
     local closed,closeReason=f:close()
-    assert(written,writeReason);assert(closed,closeReason)
+    assert(written,'Cannot write '..name..': '..tostring(writeReason))
+    assert(flushed,'Cannot flush '..name..': '..tostring(flushReason))
+    -- OpenOS close() can succeed with no return value. Check its error result.
+    assert(closed~=false and closeReason==nil,'Cannot close '..name..': '..tostring(closeReason))
   end
   assert(not fs.exists(target),'Destination appeared while downloading; existing files were not changed')
   assert(fs.rename(temporary,target))
